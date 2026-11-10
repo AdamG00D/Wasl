@@ -85,6 +85,16 @@ class TransportScreen extends StatelessWidget {
                   gradient: [p.second, p.accent],
                   onTap: () => _open(context, TransportKind.wifi),
                 ),
+                const SizedBox(height: 14),
+                _Choice(
+                  icon: Icons.hub_rounded,
+                  title: 'الاتنين مع بعض',
+                  subtitle:
+                      'موبايلك يبقى كوبري: يوصّل اللي على الواي فاي أو الهوت سبوت باللي على البلوتوث، فكذا شبكة تبقى شبكة واحدة.',
+                  tags: const ['كوبري', 'أوسع مدى', 'بطارية أكتر'],
+                  gradient: [p.accent, Color.lerp(p.accent, p.second, 0.5)!],
+                  onTap: () => _open(context, TransportKind.both),
+                ),
               ],
             );
           },

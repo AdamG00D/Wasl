@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/platform/system_bridge.dart';
 import '../../core/theme/app_theme.dart';
+import '../../mesh/dual_link.dart';
 import '../../mesh/lan_link.dart';
 import '../../mesh/mesh_link.dart';
 import '../../mesh/mesh_router.dart';
@@ -39,7 +40,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _leaving = false;
   StreamSubscription<(GroupAd, bool)>? _joinSub;
 
-  bool get _isBluetooth => widget.kind == TransportKind.bluetooth;
+  /// البلوتوث شغال (لوحده أو مع الواي فاي): محتاجين أذوناته الأول.
+  bool get _isBluetooth => widget.kind != TransportKind.wifi;
   bool get _ready => !_isBluetooth || (_requirements != null && _requirements!.every((r) => r.ok));
 
   @override
@@ -163,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     children: [
                       _ChatsTab(onNew: _openPeople),
                       _GroupsTab(onCreate: _createGroup),
-                      _PeopleTab(isWifi: !_isBluetooth),
+                      _PeopleTab(isWifi: widget.kind != TransportKind.bluetooth),
                     ],
                   ),
                 ),
@@ -261,7 +263,7 @@ class _TopBar extends StatelessWidget {
     final hub = ChatHub.instance;
     final n = hub.people.length;
     final running = hub.running && hub.link?.phase == LinkPhase.running;
-    final wifi = kind == TransportKind.wifi;
+    final wifi = kind != TransportKind.bluetooth;
     return Padding(
       padding: EdgeInsetsDirectional.only(top: MediaQuery.paddingOf(context).top + 6, start: 4, end: 10, bottom: 6),
       child: Row(
@@ -288,6 +290,7 @@ class _TopBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Icon(wifi ? Icons.wifi_rounded : Icons.bluetooth_rounded, size: 14, color: p.textMuted),
+                    if (kind == TransportKind.both) Icon(Icons.bluetooth_rounded, size: 14, color: p.textMuted),
                     const SizedBox(width: 3),
                     Flexible(
                       child: Text(
@@ -327,6 +330,13 @@ class _LinkProblems extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = link;
+    // الاتنين مع بعض: كل وسيلة بمشاكلها (واحدة تقع والتانية تكمّل)
+    if (l is DualLink) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [_LinkProblems(link: l.wifi), _LinkProblems(link: l.bluetooth)],
+      );
+    }
     final failed = l.phase == LinkPhase.failed;
     final noNetwork = l is LanLink && l.phase == LinkPhase.running && !l.hasNetwork;
     if (l.error == null && !noNetwork) return const SizedBox.shrink();
@@ -694,7 +704,11 @@ class _PeopleTabState extends State<_PeopleTab> {
     final hub = ChatHub.instance;
     final people = hub.people;
     final link = hub.link;
-    final lan = link is LanLink ? link : null;
+    final lan = link is LanLink
+        ? link
+        : link is DualLink && link.wifi is LanLink
+            ? link.wifi as LanLink
+            : null;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
       children: [

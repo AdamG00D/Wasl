@@ -14,6 +14,7 @@ import '../../core/platform/system_bridge.dart';
 import '../../core/profile/profile.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/storage/chat_store.dart';
+import '../../mesh/dual_link.dart';
 import '../../mesh/lan_link.dart';
 import '../../mesh/mesh_link.dart';
 import '../../mesh/mesh_router.dart';
@@ -25,7 +26,13 @@ import '../chat/core/chat_session.dart';
 import '../groups/group.dart';
 import '../groups/group_session.dart';
 
-enum TransportKind { bluetooth, wifi }
+enum TransportKind {
+  bluetooth,
+  wifi,
+
+  /// الاتنين مع بعض: الموبايل بيوصّل شبكة الواي فاي بالناس اللي على البلوتوث.
+  both,
+}
 
 /// محادثة (خاصة أو جروب) عايشة طول ما الشبكة شغالة.
 abstract class Conversation {
@@ -86,7 +93,14 @@ class DirectChat extends Conversation {
   CallController? call;
 
   /// وسيلة الاتصال الحالية بتدعم المكالمات؟
-  bool get canCall => hub.link?.supportsCalls ?? false;
+  bool get canCall {
+    final l = hub.link;
+    if (l == null || !l.supportsCalls) return false;
+    if (l is! DualLink) return true;
+    // المكالمة محتاجة نفس شبكة الواي فاي (مبتعدّيش على البلوتوث)
+    final direct = hub.router?.linkOf(peerId);
+    return direct != null && l.isWifi(direct);
+  }
 
   late final PeerLink _peer;
   int _attempts = 0;
@@ -252,7 +266,11 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     await stop();
     await _store.load();
     kind = k;
-    final MeshLink l = k == TransportKind.wifi ? LanLink(myId) : NearbyLink(myId);
+    final MeshLink l = switch (k) {
+      TransportKind.wifi => LanLink(myId),
+      TransportKind.bluetooth => NearbyLink(myId),
+      TransportKind.both => DualLink(myId),
+    };
     link = l;
     l.addListener(notifyListeners);
     final r = MeshRouter(link: l, describe: _describe);

@@ -331,7 +331,7 @@ class _ChatPageState extends State<ChatPage> {
           final direct = c is DirectChat ? c : null;
           final group = c is GroupChat ? c : null;
           final alive = _alive;
-          final wifi = _hub.kind == TransportKind.wifi;
+          final wifi = _hub.kind != TransportKind.bluetooth;
 
           final (String label, Color color, IconData? icon) = () {
             if (!alive) return ('المحادثة اتقفلت', p.textMuted, Icons.link_off_rounded);

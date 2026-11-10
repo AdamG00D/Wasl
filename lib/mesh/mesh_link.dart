@@ -25,6 +25,12 @@ abstract class MeshLink extends ChangeNotifier {
   /// أقصى طول لإطار واحد.
   int get maxFrame;
 
+  /// أقصى طول لإطار على وصلة بعينها (الإطار الأكبر بيتقسم في [MeshRouter]).
+  int frameLimit(String link) => maxFrame;
+
+  /// أولوية الوصلة لو فيه وصلتين لنفس الجهاز (الأعلى بيكسب — الواي فاي قبل البلوتوث).
+  int rank(String link) => 0;
+
   bool get supportsVideo;
   bool get supportsCalls;
 
@@ -42,6 +48,9 @@ abstract class MeshLink extends ChangeNotifier {
 
   /// الجهاز ده متوصل بيه بالفعل؟ (عشان منتصلش بيه مرتين)
   bool Function(String nodeId) isLinked = (_) => false;
+
+  /// الوصلة اللي الجهاز ده متوصل بيها دلوقتي (null = مش جار مباشر).
+  String? Function(String nodeId) linkOf = (_) => null;
 
   /// الوصلة دي إحنا اللي بدأناها.
   bool isOutgoing(String link);

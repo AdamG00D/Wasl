@@ -83,6 +83,14 @@ class MeshNode {
   String? _lastPresence;
 }
 
+class _Assembly {
+  _Assembly(this.fid, this.total);
+  final String fid;
+  final int total;
+  final StringBuffer buffer = StringBuffer();
+  int next = 0;
+}
+
 /// موجّه الشبكة (Mesh): بيعرف مين موجود، وبيوصّل الرسايل لأبعد من الجيران المباشرين.
 ///
 /// شكل الإطار:  `نوع|مصدر|وجهة|رقم|قفزات|المحتوى`
@@ -90,6 +98,7 @@ class MeshNode {
 ///   D  بيانات محادثة خاصة (لجهاز)   U  رسالة تحكم JSON (لجهاز)
 ///   G  رسالة جروب (بث، الوجهة = معرّف الجروب)
 ///   H  تعارف بين جارين (مش بيتوجّه)
+///   F  جزء من إطار أكبر من اللي الوصلة تستحمله: `F|رقم|جزء|العدد|المحتوى` (بين جارين بس)
 ///
 /// • البث: كل جهاز بيعيد الإرسال مرة واحدة (بنتجاهل المكرر) لحد ما القفزات تخلص،
 ///   ومبنبعتش لجار إحنا عارفين إن اللي بعتلنا جاره هو كمان.
@@ -106,10 +115,15 @@ class MeshRouter extends ChangeNotifier {
       ..onUp = _onLinkUp
       ..onFrame = _onLinkFrame
       ..onDown = _onLinkDown
-      ..isLinked = _nodeToLink.containsKey;
+      ..isLinked = _nodeToLink.containsKey
+      ..linkOf = ((id) => _nodeToLink[id]);
   }
 
   static const int maxHops = 6;
+
+  /// أقصى طول لإطار بعد تجميع أجزائه.
+  static const int maxAssembled = 256 * 1024;
+  static const int _maxFragments = 64;
   static final RegExp _idPattern = RegExp(r'^[0-9a-f]{16}$');
   static bool isId(String s) => _idPattern.hasMatch(s);
 
@@ -142,6 +156,8 @@ class MeshRouter extends ChangeNotifier {
   final Map<String, String> _verifiedKeys = {};
   final String _epoch = Kdf.hex(Kdf.randomBytes(3));
   int _counter = 0;
+  int _fragCounter = 0;
+  final Map<String, _Assembly> _assembling = {};
   Timer? _presenceTimer;
   Timer? _pruneTimer;
   Timer? _presenceSoon;
@@ -157,6 +173,9 @@ class MeshRouter extends ChangeNotifier {
   int get neighborCount => _nodeToLink.length;
 
   bool isDirect(String id) => _nodeToLink.containsKey(id);
+
+  /// الوصلة المباشرة للجهاز ده (null = مش جار مباشر).
+  String? linkOf(String id) => _nodeToLink[id];
 
   /// نقدر نوصل للجهاز ده دلوقتي؟
   bool reachable(String id) => _nodeToLink.isNotEmpty && nodes.containsKey(id);
@@ -185,6 +204,7 @@ class MeshRouter extends ChangeNotifier {
       t.cancel();
     }
     _unidentified.clear();
+    _assembling.clear();
     final gone = nodes.values.toList();
     nodes.clear();
     _routes.clear();
@@ -224,9 +244,23 @@ class MeshRouter extends ChangeNotifier {
 
   Future<void> _sendTo(String linkId, String frame) {
     final prev = _queues[linkId] ?? Future<void>.value();
-    final next = prev.then((_) => link.send(linkId, frame));
+    final next = prev.then((_) => _sendWhole(linkId, frame));
     _queues[linkId] = next.catchError((Object _) {});
     return next;
+  }
+
+  /// الإطار اللي أكبر من طاقة الوصلة (مثلاً جاي من الواي فاي ورايح بلوتوث) بيتقسم أجزاء.
+  Future<void> _sendWhole(String linkId, String frame) async {
+    final limit = link.frameLimit(linkId);
+    if (frame.length <= limit) return link.send(linkId, frame);
+    final size = limit - 40;
+    final n = (frame.length + size - 1) ~/ size;
+    if (size < 256 || n > _maxFragments) throw StateError('frame too big');
+    final fid = (_fragCounter++).toRadixString(36);
+    for (var i = 0; i < n; i++) {
+      final end = (i + 1) * size;
+      await link.send(linkId, 'F|$fid|$i|$n|${frame.substring(i * size, end > frame.length ? frame.length : end)}');
+    }
   }
 
   Future<void> _broadcast(String frame, String? fromLink) {
@@ -272,6 +306,7 @@ class MeshRouter extends ChangeNotifier {
     _unidentified.remove(linkId)?.cancel();
     _queues.remove(linkId);
     _lastRx.remove(linkId);
+    _assembling.remove(linkId);
     final node = _linkToNode.remove(linkId);
     if (node == null) return;
     if (_nodeToLink[node] == linkId) {
@@ -304,7 +339,9 @@ class MeshRouter extends ChangeNotifier {
       final newBySmaller = link.isOutgoing(linkId) == smallerIsMe;
       final last = _lastRx[existing];
       final existingFresh = last != null && DateTime.now().difference(last) < presenceEvery * 2;
-      if (existingFresh && existingBySmaller && !newBySmaller) {
+      // وصلة أسرع (واي فاي) بتاخد مكان الأبطأ (بلوتوث)، والعكس لأ
+      final better = link.rank(linkId) - link.rank(existing);
+      if (existingFresh && (better < 0 || (better == 0 && existingBySmaller && !newBySmaller))) {
         _linkToNode.remove(linkId);
         link.drop(linkId);
         return;
@@ -334,8 +371,45 @@ class MeshRouter extends ChangeNotifier {
   }
 
   void _onLinkFrame(String linkId, String frame) {
-    if (!_running || frame.length > link.maxFrame + 512) return;
+    if (!_running || frame.length > maxAssembled + 512) return;
     _lastRx[linkId] = DateTime.now();
+    if (frame.startsWith('F|')) {
+      final whole = _assemble(linkId, frame);
+      if (whole != null) _onWholeFrame(linkId, whole);
+      return;
+    }
+    _onWholeFrame(linkId, frame);
+  }
+
+  /// بيجمّع أجزاء إطار كبير (بتوصل بالترتيب على نفس الوصلة). يرجّع الإطار لما يكمل.
+  String? _assemble(String linkId, String frame) {
+    final a = frame.indexOf('|', 2);
+    final b = a < 0 ? -1 : frame.indexOf('|', a + 1);
+    final c = b < 0 ? -1 : frame.indexOf('|', b + 1);
+    if (c < 0 || a > 12) return null;
+    final fid = frame.substring(2, a);
+    final i = int.tryParse(frame.substring(a + 1, b)) ?? -1;
+    final n = int.tryParse(frame.substring(b + 1, c)) ?? 0;
+    if (n < 2 || n > _maxFragments || i < 0 || i >= n) return null;
+    var asm = _assembling[linkId];
+    if (i == 0) {
+      asm = _assembling[linkId] = _Assembly(fid, n);
+    } else if (asm == null || asm.fid != fid || asm.total != n || asm.next != i) {
+      _assembling.remove(linkId);
+      return null;
+    }
+    asm.buffer.write(frame.substring(c + 1));
+    asm.next++;
+    if (asm.buffer.length > maxAssembled) {
+      _assembling.remove(linkId);
+      return null;
+    }
+    if (asm.next < n) return null;
+    _assembling.remove(linkId);
+    return asm.buffer.toString();
+  }
+
+  void _onWholeFrame(String linkId, String frame) {
     if (frame.startsWith('H|')) {
       _onHello(linkId, frame.substring(2));
       return;
