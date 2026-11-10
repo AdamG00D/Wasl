@@ -5,8 +5,10 @@ Nearby Connections) or **Wi-Fi / hotspot** (UDP discovery + TCP) — or both at 
 bridge between the two — with no internet and no server. Devices form a **mesh** (messages hop through other
 phones), private chats are end-to-end encrypted automatically (no passwords), and there are groups (open /
 password / join-request) with an owner and admins. Package `com.adam.wasl`. Open source, **GPL-3.0-or-later**
-(`LICENSE`); human-facing docs: `README.md`, `CONTRIBUTING.md`, `SECURITY.md` (threat model + known limits),
-`docs/PROTOCOL.md` (wire protocol — keep it in sync with the code). It started from the chat part of the
+(`LICENSE`); human-facing docs come in English + Arabic pairs (`X.md` / `X.ar.md`, keep both in sync):
+`README`, `CONTRIBUTING`, `SECURITY` (threat model + known limits), `CODE_OF_CONDUCT` (Contributor Covenant 2.1).
+`docs/PROTOCOL.md` (wire protocol, English only — keep it in sync with the code). README images live in
+`docs/images/` (banners `banner.en.png` / `banner.ar.png`, screenshots in `screenshots/`). It started from the chat part of the
 owner's older app ILN (`~/Downloads/ILN_App/iln_flutter`) — chat session, file transfer, voice, calls and the Kotlin
 helpers come from there.
 
@@ -29,7 +31,9 @@ python3 tool/generate_icon.py   # regenerate launcher icon (needs Pillow)
 ```
 
 New version: bump `version` in `pubspec.yaml` **and** `appVersion` in `lib/core/config.dart`, and write
-`release_notes/<X.Y>v.txt`. The build script refuses to run without the notes.
+`release_notes/<X.Y>v.txt` (Arabic) + `release_notes/<X.Y>v.en.md` (English, with the download table). The build
+script refuses to run without both. It builds arm64-v8a / armeabi-v7a / x86_64 / universal APKs with one shared
+versionCode, `SHA256SUMS.txt` and `github_release.md`, and prints the `gh release create` command.
 
 Folder layout on disk: `Wasl/Wasl_App/` (this repo) and `Wasl/Signing_Key/` (keystore + passwords — outside the repo
 on purpose, never commit or print them). Without the key Gradle signs with the debug key (so contributors and CI can

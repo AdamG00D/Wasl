@@ -1,25 +1,28 @@
 ---
-name: مشكلة / Bug report
-about: حاجة مش شغالة زي المفروض
+name: Bug report / مشكلة
+about: Something doesn't work as expected / حاجة مش شغالة زي المفروض
 labels: bug
 ---
 
-> ثغرة أمان؟ متكتبهاش هنا — شوف SECURITY.md.
+> **Security issue?** Don't post it here — see [SECURITY.md](https://github.com/AdamG00D/Wasl/blob/main/SECURITY.md).
+> **ثغرة أمان؟** متكتبهاش هنا — شوف SECURITY.ar.md.
+>
+> English or Arabic are both fine. / تقدر تكتب عربي أو إنجليزي.
 
-**إيه اللي حصل؟**
+**What happened? / إيه اللي حصل؟**
 
 
-**كنت متوقع إيه؟**
+**What did you expect? / كنت متوقع إيه؟**
 
 
-**الخطوات عشان المشكلة تظهر**
+**Steps to reproduce / الخطوات عشان المشكلة تظهر**
 
 1.
 2.
 
-**التفاصيل**
+**Details / التفاصيل**
 
-- إصدار Wasl:
-- الموبايل وإصدار أندرويد (للطرفين لو المشكلة بين موبايلين):
-- وسيلة الاتصال: بلوتوث / واي فاي / هوت سبوت / الاتنين
-- شات خاص ولا جروب (ونوع الجروب)؟
+- Wasl version / الإصدار:
+- Phone model and Android version (both phones if it's between two) / الموبايل وإصدار أندرويد (للطرفين):
+- Connection / الاتصال: Bluetooth / Wi-Fi / hotspot / both
+- Private chat or group (which type)? / شات خاص ولا جروب (ونوعه)؟

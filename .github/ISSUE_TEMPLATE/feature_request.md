@@ -1,15 +1,18 @@
 ---
-name: اقتراح / Feature request
-about: ميزة جديدة أو تحسين
+name: Feature request / اقتراح
+about: A new feature or an improvement / ميزة جديدة أو تحسين
 labels: enhancement
 ---
 
-**المشكلة اللي الميزة دي بتحلها**
+> English or Arabic are both fine. / تقدر تكتب عربي أو إنجليزي.
+
+**What problem does it solve? / المشكلة اللي بتحلها**
 
 
-**الاقتراح**
+**Your proposal / الاقتراح**
 
 
-**ملاحظات**
+**Notes / ملاحظات**
 
-<!-- Wasl شغال من غير إنترنت ومن غير سيرفر: أي اقتراح لازم يمشي مع ده. -->
+<!-- Wasl works with no internet and no server; proposals need to fit that.
+     وصل شغال من غير إنترنت ومن غير سيرفر: أي اقتراح لازم يمشي مع ده. -->

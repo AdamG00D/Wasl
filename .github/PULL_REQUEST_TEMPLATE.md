@@ -1,12 +1,13 @@
-## إيه اللي اتغيّر؟ / What changed?
+## What changed? / إيه اللي اتغيّر؟
 
 
-## جرّبته إزاي؟ / How was it tested?
+## How was it tested? / جرّبته إزاي؟
 
 - [ ] `flutter analyze` — No issues found
-- [ ] `flutter test` — كله نجح
-- [ ] على موبايلات حقيقية (اكتب: بلوتوث / واي فاي / الاتنين)
+- [ ] `flutter test` — all passing / كله نجح
+- [ ] On real phones (Bluetooth / Wi-Fi / both) / على موبايلات حقيقية
 
-## ملاحظات / Notes
+## Notes / ملاحظات
 
-<!-- تغيير في البروتوكول؟ حدّث docs/PROTOCOL.md. مكتبة جديدة؟ اكتب ليه ورخصتها. تغيير في الواجهة؟ حط صورة. -->
+<!-- Protocol change? Update docs/PROTOCOL.md. New dependency? Explain why and its license. UI change? Add a screenshot.
+     تغيير في البروتوكول؟ حدّث docs/PROTOCOL.md. مكتبة جديدة؟ اكتب ليه ورخصتها. تغيير في الواجهة؟ حط صورة. -->

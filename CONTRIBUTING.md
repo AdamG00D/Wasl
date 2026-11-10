@@ -1,64 +1,70 @@
-# المساهمة في Wasl
+**English** | [العربية](CONTRIBUTING.ar.md)
 
-أهلاً بيك. المشروع صغير ومكتوب بحيث أي حد يقدر يقراه ويغيّر فيه — الكلام ده عشان تغييرك يدخل بسهولة.
+# Contributing to Wasl
 
-> **English speakers:** issues and pull requests in English are fine. UI strings and code comments in this repo are
-> in Egyptian Arabic; if you can't write them, put English in the PR and say so — a maintainer will translate.
+Thanks for your interest! The project is small and written so anyone can read and change it. This guide helps your
+change get in smoothly.
 
-## قبل ما تبدأ
+## Before you start
 
-- تغيير صغير (إصلاح، تحسين واجهة)؟ افتح Pull Request على طول.
-- ميزة جديدة أو تغيير في البروتوكول؟ افتح issue الأول واشرح الفكرة، عشان متشتغلش في حاجة مش هتدخل.
-- ثغرة أمان؟ **مش هنا** — شوف [SECURITY.md](SECURITY.md).
+- Small change (a fix, a UI tweak)? Open a pull request directly.
+- New feature or a protocol change? Open an issue first and describe the idea, so you don't spend time on something
+  that won't be merged.
+- Security issue? **Not here** — see [SECURITY.md](SECURITY.md).
 
-## تجهيز الشغل
+## Setup
 
 ```bash
 flutter pub get
-flutter analyze   # لازم يقول: No issues found!
-flutter test      # لازم كله ينجح
+flutter analyze   # must report: No issues found!
+flutter test      # everything must pass
 ```
 
-مش محتاج مفتاح التوقيع: المشروع بيتبني بمفتاح الـ debug من غيره.
+You don't need the signing key: the project builds with the debug key without it.
 
-## القواعد
+## Rules
 
-**الكود**
+**Code**
 
-- نصوص الواجهة وتعليقات الكود بالعامية المصرية، قصيرة وودودة. الواجهة RTL: استخدم `EdgeInsetsDirectional` /
-  `AlignmentDirectional` / `PositionedDirectional`.
-- الألوان من `context.palette` بس. رسايل المستخدم بـ `showToast` (مش `SnackBar`). قفل الكيبورد بـ `hideKeyboard()`.
-- طول السطر 120. متعيدش تنسيق ملفات مش بتاعة تغييرك.
-- من غير مكتبات جديدة إلا لو لازم — وكل مكتبة جديدة اكتب في الـ PR ليه محتاجينها ورخصتها إيه (لازم تتوافق مع GPL-3.0).
+- The app's UI text and code comments are in Egyptian Arabic, short and friendly. If you can't write Arabic, write
+  English and say so in the PR — a maintainer will translate. Issues and PRs in English or Arabic are both fine.
+- The layout is RTL: use `EdgeInsetsDirectional` / `AlignmentDirectional` / `PositionedDirectional`.
+- Colours only through `context.palette`. User messages via `showToast` (not `SnackBar`). Close the keyboard with
+  `hideKeyboard()`.
+- Line width 120. Don't reformat files your change doesn't touch.
+- Avoid new dependencies unless necessary — if you add one, explain why in the PR and give its license (it must be
+  compatible with GPL-3.0).
 
-**الخصوصية (مش قابلة للتفاوض)**
+**Privacy (non-negotiable)**
 
-- مفيش أي اتصال بالإنترنت، ولا تحليلات، ولا تقارير أعطال بتتبعت لأي مكان.
-- محتوى الرسايل والمفاتيح مبيتكتبوش في أي log.
-- المحادثة مبتتكتبش على الموبايل غير لو المستخدم مفعّل الحفظ.
+- No internet access at all: no analytics, no crash reporting, nothing sent anywhere.
+- Message contents and keys are never logged.
+- A conversation is written to disk only if the user enabled saving.
 
-**البروتوكول**
+**Protocol**
 
-- القواعد في [docs/PROTOCOL.md](docs/PROTOCOL.md) وعليها اختبارات. لو غيّرت حاجة فيها: حدّث الملف، وضيف/عدّل الاختبار.
-- تغيير شكل رسايل القناة الخاصة محتاج تزوّد `protocolVersion` — وده بيقطع الكلام مع النسخ القديمة، فلازم سبب قوي.
-- الإضافات اللي النسخ القديمة بتتجاهلها (نوع حزمة جديد، حقل جديد) هي الطريقة المفضّلة.
-- أي بيانات جاية من الشبكة اعتبرها من حد عايز يأذيك: حدّد طولها، اتأكد من نوعها، ومتثقش في "أنا فلان" من غير إثبات.
+- The rules live in [docs/PROTOCOL.md](docs/PROTOCOL.md) and are covered by tests. If you change them, update that
+  file and add or adjust a test.
+- Changing the shape of private-channel packets requires bumping `protocolVersion`, which breaks compatibility with
+  older versions — so it needs a strong reason.
+- Additive changes that older versions ignore (a new packet kind, a new field) are the preferred way.
+- Treat everything from the network as hostile: bound lengths, check types, and never trust a claimed identity
+  without proof.
 
-**الاختبارات**
+**Tests**
 
-- منطق الشبكة والتشفير والجروبات بيتختبر في `test/` بشبكة وهمية (`test/support.dart`) — من غير موبايلات.
-- أي إصلاح لخطأ: اكتب اختبار بيفشل قبل الإصلاح وينجح بعده.
+- Mesh, crypto and group logic are tested in `test/` on an in-memory network (`test/support.dart`) — no phones needed.
+- For any bug fix: write a test that fails before the fix and passes after it.
 
-## الـ Pull Request
+## Pull requests
 
-- فرع من `main`، وتغيير واحد واضح في كل PR.
-- رسالة الـ commit: جملة قصيرة بتقول إيه اللي اتغيّر، وتحتها ليه لو مش واضح.
-- اكتب في الـ PR: إيه اللي اتغيّر، جرّبته إزاي (اختبارات / موبايلات حقيقية وأنهي وسيلة اتصال)، ولو فيه تغيير
-  في الواجهة حط صورة.
-- بمساهمتك إنت موافق إن الكود بتاعك يتنشر تحت رخصة المشروع (GPL-3.0-or-later).
+- Branch from `main`, one clear change per PR. Pull requests are squash-merged.
+- Commit message: a short sentence saying what changed, and why below it if it isn't obvious.
+- In the PR: what changed, how you tested it (tests / real phones and which transport), and a screenshot for UI changes.
+- By contributing you agree that your code is released under the project's license (GPL-3.0-or-later).
 
-## لو عايز تساعد ومش عارف تبدأ منين
+## Not sure where to start?
 
-- جرّب التطبيق على موبايلات مختلفة وبلّغ عن أي حاجة مش شغالة (نوع الموبايل وإصدار أندرويد مهمين).
-- الترجمة: الواجهة عربي بس دلوقتي.
-- الحدود المكتوبة في [SECURITY.md](SECURITY.md) — كل واحدة منها مشروع حلو للي بيحب التشفير.
+- Try the app on different phones and report anything that doesn't work (phone model and Android version matter).
+- Translation: the UI is Arabic only for now.
+- The limitations listed in [SECURITY.md](SECURITY.md) — each one is a nice project if you enjoy cryptography.

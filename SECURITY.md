@@ -1,73 +1,55 @@
-# الأمان في Wasl
+**English** | [العربية](SECURITY.ar.md)
 
-> **English summary below** — [jump](#english).
+# Security
 
-## التبليغ عن ثغرة
+## Reporting a vulnerability
 
-**متفتحش issue علني.** استخدم التبليغ الخاص على منصة الاستضافة (في GitHub: تبويب *Security* ← *Report a
-vulnerability*)، أو كلّم صاحب المشروع على الخاص. اكتب: إيه المشكلة، إزاي تتكرر، وتأثيرها. هنرد في أقرب وقت،
-وهنذكر اسمك في ملاحظات الإصدار لو تحب.
+**Please don't open a public issue.** Use GitHub's private reporting: the repository's **Security** tab →
+**Report a vulnerability**. Include what the problem is, how to reproduce it and its impact. We'll reply as soon as
+we can and, if you like, credit you in the release notes.
 
-## Wasl بيحميك من إيه
+## What Wasl protects against
 
-| الحاجة | الحماية |
+| Threat | Protection |
 |---|---|
-| حد بيتصنّت على البلوتوث / الواي فاي | الشات الخاص AES-256-GCM بمفاتيح X25519 بتتولّد لكل اتصال |
-| الموبايلات اللي في النص (Mesh) | بتوصّل الإطارات بس ومبتقدرش تقرا ولا تعدّل الشات الخاص |
-| حد ينتحل معرّف شخص | المعرّف = هاش مفتاح الهوية، والمصافحة بتثبت إن معاه المفتاح الخاص |
-| مفتاح الهوية اتسرق بعدين | المفاتيح المؤقتة لكل اتصال: الرسايل القديمة متتفكش (forward secrecy) |
-| إعادة إرسال رسالة قديمة | عدّاد متزايد في كل رسالة، ورقم متزايد في أوامر إدارة الجروب |
-| حد ياخد الموبايل وهو مقفول | المحادثات المحفوظة AES-256-GCM بمفتاح متشفّر جوه Android Keystore؛ الحفظ اختياري ومقفول افتراضياً |
-| حد يزوّر أمر مدير في جروب | أوامر الإدارة مقفولة لكل عضو بمفتاح مشترك بين هوية المرسل والمستلم |
-| النسخ الاحتياطي | ممنوع (`allowBackup=false` وقواعد منع النقل) |
+| Someone listening on Bluetooth / Wi-Fi | Private chats use AES-256-GCM with X25519 keys generated per connection |
+| Phones relaying in the mesh | They forward frames only; they can't read or alter private chats |
+| Impersonating someone's id | A node id is the hash of its identity key, and the handshake proves possession of the private key |
+| An identity key stolen later | Ephemeral keys per connection: past messages can't be decrypted (forward secrecy) |
+| Replaying an old message | Strictly increasing counters in every message, and in group admin commands |
+| A lost phone (locked) | Saved chats are AES-256-GCM encrypted with a key wrapped by Android Keystore; saving is opt-in and off by default |
+| Forging an admin command in a group | Admin commands are sealed per member with a key shared between sender and recipient identities |
+| Backups | Disabled (`allowBackup=false` and data-extraction rules) |
 
-## حدود معروفة — اقراها
+## Known limitations — please read
 
-دي حاجات إحنا عارفينها ومكتوبة بصراحة عشان متعتمدش على حاجة مش موجودة:
+These are known and documented so nobody relies on something that isn't there:
 
-1. **الاسم والصورة مش موثّقين.** إعلان "أنا موجود" بيتأكد إن المعرّف هو هاش المفتاح، بس الاسم والصورة وقايمة
-   الجروبات اللي فيه مش موقّعين. جهاز خبيث في الشبكة يقدر يعرض اسم غلط لمعرّف حد تاني. الشات الخاص نفسه
-   مبيتأثرش (المفاتيح مربوطة بالمعرّف) — ولو الموضوع مهم **قارنوا رمز الأمان**.
-2. **جوه الجروب، الأعضاء مش موثّقين لبعض.** رسايل الجروب متشفّرة بمفتاح واحد مع كل الأعضاء. التطبيق بيرفض رسالة
-   مكتوب فيها اسم غير مصدرها في الشبكة، بس عضو بتطبيق معدّل يقدر يزوّر المصدر كمان. يعني: عضو خبيث يقدر يبعت
-   رسالة باسم عضو تاني. (أوامر الإدارة مش كده — دي موثّقة.)
-3. **الجروب العام مش سري.** مفتاحه مشتق من معرّفه، فأي حد قريب يقدر يقراه. ده معنى "عام".
-4. **الإزالة من الجروب:** في "بطلب انضمام" المفتاح بيتغير (إزالة حقيقية). في "بكلمة سر" و"عام" اللي اتشال لسه يقدر
-   يفك الرسايل لو معاه تطبيق معدّل؛ التطبيقات العادية بتتجاهل رسايله وبتخرّجه.
-5. **مفيش forward secrecy في الجروبات.** اللي معاه مفتاح الجروب يقدر يفك أي رسالة اتبعتت بيه لو كان مسجّلها.
-6. **البيانات الوصفية ظاهرة للي حواليك.** أي جهاز قريب يقدر يشوف مين موجود (المعرّف والاسم)، مين عضو في أنهي
-   جروب، ومين بيبعت لمين وحجم وتوقيت الإطارات — مش المحتوى. Wasl مش أداة إخفاء هوية.
-7. **الإشعارات.** من الإصدار 1.1 الإشعار فيه اسم المرسل ونص الرسالة (إلا لو قفل التطبيق متفعّل، وعلى شاشة قفل
-   الموبايل بيظهر "رسالة جديدة" بس). لو مش عايز كده فعّل قفل التطبيق.
-8. **موبايل مفتوح أو مخترق.** لو حد معاه الموبايل وهو مفتوح، أو عليه برنامج خبيث بصلاحيات عالية، مفيش تطبيق
-   هيحميك.
-9. **الإغراق (DoS).** جهاز قريب يقدر يملا الشبكة إطارات أو يقطع الوصلات. فيه حدود على الأحجام والعدد، بس مفيش
-   حماية كاملة.
-10. **مفيش مراجعة أمان خارجية** لحد دلوقتي. الكود مفتوح عشان أي حد يراجعه.
+1. **Names and avatars are not authenticated.** Presence proves that an id is the hash of the advertised key, but
+   the name, avatar and group list are not signed. A malicious device in the mesh can show a wrong name for someone
+   else's id. Private chats themselves are unaffected (keys are bound to the id) — when it matters,
+   **compare safety codes**.
+2. **Inside a group, members are not authenticated to each other.** Group messages are encrypted with one key shared
+   by all members. The app rejects a message whose claimed sender differs from its mesh source, but a member with a
+   modified client can forge the source too — so a malicious member can post as another member. (Admin commands are
+   not affected; they are authenticated.)
+3. **Open groups are not secret.** Their key is derived from the group id, so anyone nearby can read them. That is
+   what "open" means.
+4. **Removing a member** re-keys **join-request** groups (a real removal). In **password** and **open** groups the
+   removed person can still decrypt messages with a modified client; normal apps ignore their messages and remove them.
+5. **No forward secrecy in groups.** Anyone who has the group key can decrypt any recorded message sent with it.
+6. **Metadata is visible to devices nearby**: who is present (id and name), who is in which group, who talks to whom,
+   and the size and timing of frames — not the content. Wasl is not an anonymity tool.
+7. **Notifications** show the sender and text unless the app lock is enabled. The phone's lock screen only ever
+   shows "new message". Enable the app lock if you don't want content in notifications.
+8. **An unlocked or compromised phone.** If someone has your phone unlocked, or it runs malware with high privileges,
+   no app can protect you.
+9. **Flooding (DoS).** A nearby device can flood the mesh or drop links. Sizes and counts are bounded, but there is
+   no complete protection.
+10. **No external audit yet.** The code is open so anyone can review it.
 
-## التشفير المستخدم
+## Cryptography
 
-X25519 • HKDF-SHA256 • HMAC-SHA256 • AES-256-GCM • Argon2id (19 ميجا، دورتين) • SHA-256 — من مكتبة
-[`cryptography`](https://pub.dev/packages/cryptography) وتشفير أندرويد نفسه للحزم الكبيرة. التفاصيل في
-[docs/PROTOCOL.md](docs/PROTOCOL.md).
-
----
-
-<a id="english"></a>
-
-## English
-
-**Reporting:** do not open a public issue. Use the hosting platform's private vulnerability reporting (GitHub:
-*Security → Report a vulnerability*) or contact the maintainer privately.
-
-**What is protected:** direct chats are end-to-end encrypted (ephemeral + static X25519, HKDF, AES-256-GCM,
-sequence numbers, key confirmation); relays cannot read or alter them; node ids are hashes of identity keys; saved
-chats are encrypted at rest with a Keystore-wrapped key and saving is off by default; group admin commands are
-authenticated per recipient with a static-static pair key.
-
-**Known limitations:** display names/avatars/group lists in presence are not signed; group members are not
-authenticated to each other (a member with a modified client can impersonate another member inside a group; admin
-commands are not affected); open groups are readable by anyone nearby by design; removal is cryptographic only in
-join-request groups (key rotation) and advisory in password/open groups; groups have no forward secrecy; metadata
-(who is present, group membership, traffic patterns) is visible to nearby devices; notifications show sender and
-text unless the app lock is enabled; no external audit yet.
+X25519 • HKDF-SHA256 • HMAC-SHA256 • AES-256-GCM • Argon2id (19 MiB, 2 passes) • SHA-256 — from the
+[`cryptography`](https://pub.dev/packages/cryptography) package, with Android's own AES-GCM for large payloads. Details
+in [docs/PROTOCOL.md](docs/PROTOCOL.md).
