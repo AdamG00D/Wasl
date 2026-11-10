@@ -1,0 +1,50 @@
+name: wasl
+description: "Wasl — وَصْل: شات مشفّر من غير إنترنت (بلوتوث / واي فاي) مع جروبات وشبكة Mesh."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  shared_preferences: ^2.3.2
+  cryptography: ^2.7.0
+  path_provider: ^2.1.4
+  audioplayers: ^6.1.0
+  image_picker: ^1.1.2
+  share_plus: ^13.3.1
+  file_picker: ^13.3.2
+  permission_handler: ^12.0.1
+  wakelock_plus: ^1.2.8
+  nearby_connections: ^4.1.1
+  gal: ^2.3.3
+  flutter_webrtc: ^1.6.3
+  video_player: ^2.14.1
+  emoji_picker_flutter: ^4.5.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/audio/
+  fonts:
+    - family: Plex
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700
