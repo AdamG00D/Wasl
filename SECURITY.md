@@ -1,0 +1,73 @@
+# الأمان في Wasl
+
+> **English summary below** — [jump](#english).
+
+## التبليغ عن ثغرة
+
+**متفتحش issue علني.** استخدم التبليغ الخاص على منصة الاستضافة (في GitHub: تبويب *Security* ← *Report a
+vulnerability*)، أو كلّم صاحب المشروع على الخاص. اكتب: إيه المشكلة، إزاي تتكرر، وتأثيرها. هنرد في أقرب وقت،
+وهنذكر اسمك في ملاحظات الإصدار لو تحب.
+
+## Wasl بيحميك من إيه
+
+| الحاجة | الحماية |
+|---|---|
+| حد بيتصنّت على البلوتوث / الواي فاي | الشات الخاص AES-256-GCM بمفاتيح X25519 بتتولّد لكل اتصال |
+| الموبايلات اللي في النص (Mesh) | بتوصّل الإطارات بس ومبتقدرش تقرا ولا تعدّل الشات الخاص |
+| حد ينتحل معرّف شخص | المعرّف = هاش مفتاح الهوية، والمصافحة بتثبت إن معاه المفتاح الخاص |
+| مفتاح الهوية اتسرق بعدين | المفاتيح المؤقتة لكل اتصال: الرسايل القديمة متتفكش (forward secrecy) |
+| إعادة إرسال رسالة قديمة | عدّاد متزايد في كل رسالة، ورقم متزايد في أوامر إدارة الجروب |
+| حد ياخد الموبايل وهو مقفول | المحادثات المحفوظة AES-256-GCM بمفتاح متشفّر جوه Android Keystore؛ الحفظ اختياري ومقفول افتراضياً |
+| حد يزوّر أمر مدير في جروب | أوامر الإدارة مقفولة لكل عضو بمفتاح مشترك بين هوية المرسل والمستلم |
+| النسخ الاحتياطي | ممنوع (`allowBackup=false` وقواعد منع النقل) |
+
+## حدود معروفة — اقراها
+
+دي حاجات إحنا عارفينها ومكتوبة بصراحة عشان متعتمدش على حاجة مش موجودة:
+
+1. **الاسم والصورة مش موثّقين.** إعلان "أنا موجود" بيتأكد إن المعرّف هو هاش المفتاح، بس الاسم والصورة وقايمة
+   الجروبات اللي فيه مش موقّعين. جهاز خبيث في الشبكة يقدر يعرض اسم غلط لمعرّف حد تاني. الشات الخاص نفسه
+   مبيتأثرش (المفاتيح مربوطة بالمعرّف) — ولو الموضوع مهم **قارنوا رمز الأمان**.
+2. **جوه الجروب، الأعضاء مش موثّقين لبعض.** رسايل الجروب متشفّرة بمفتاح واحد مع كل الأعضاء. التطبيق بيرفض رسالة
+   مكتوب فيها اسم غير مصدرها في الشبكة، بس عضو بتطبيق معدّل يقدر يزوّر المصدر كمان. يعني: عضو خبيث يقدر يبعت
+   رسالة باسم عضو تاني. (أوامر الإدارة مش كده — دي موثّقة.)
+3. **الجروب العام مش سري.** مفتاحه مشتق من معرّفه، فأي حد قريب يقدر يقراه. ده معنى "عام".
+4. **الإزالة من الجروب:** في "بطلب انضمام" المفتاح بيتغير (إزالة حقيقية). في "بكلمة سر" و"عام" اللي اتشال لسه يقدر
+   يفك الرسايل لو معاه تطبيق معدّل؛ التطبيقات العادية بتتجاهل رسايله وبتخرّجه.
+5. **مفيش forward secrecy في الجروبات.** اللي معاه مفتاح الجروب يقدر يفك أي رسالة اتبعتت بيه لو كان مسجّلها.
+6. **البيانات الوصفية ظاهرة للي حواليك.** أي جهاز قريب يقدر يشوف مين موجود (المعرّف والاسم)، مين عضو في أنهي
+   جروب، ومين بيبعت لمين وحجم وتوقيت الإطارات — مش المحتوى. Wasl مش أداة إخفاء هوية.
+7. **الإشعارات.** من الإصدار 1.1 الإشعار فيه اسم المرسل ونص الرسالة (إلا لو قفل التطبيق متفعّل، وعلى شاشة قفل
+   الموبايل بيظهر "رسالة جديدة" بس). لو مش عايز كده فعّل قفل التطبيق.
+8. **موبايل مفتوح أو مخترق.** لو حد معاه الموبايل وهو مفتوح، أو عليه برنامج خبيث بصلاحيات عالية، مفيش تطبيق
+   هيحميك.
+9. **الإغراق (DoS).** جهاز قريب يقدر يملا الشبكة إطارات أو يقطع الوصلات. فيه حدود على الأحجام والعدد، بس مفيش
+   حماية كاملة.
+10. **مفيش مراجعة أمان خارجية** لحد دلوقتي. الكود مفتوح عشان أي حد يراجعه.
+
+## التشفير المستخدم
+
+X25519 • HKDF-SHA256 • HMAC-SHA256 • AES-256-GCM • Argon2id (19 ميجا، دورتين) • SHA-256 — من مكتبة
+[`cryptography`](https://pub.dev/packages/cryptography) وتشفير أندرويد نفسه للحزم الكبيرة. التفاصيل في
+[docs/PROTOCOL.md](docs/PROTOCOL.md).
+
+---
+
+<a id="english"></a>
+
+## English
+
+**Reporting:** do not open a public issue. Use the hosting platform's private vulnerability reporting (GitHub:
+*Security → Report a vulnerability*) or contact the maintainer privately.
+
+**What is protected:** direct chats are end-to-end encrypted (ephemeral + static X25519, HKDF, AES-256-GCM,
+sequence numbers, key confirmation); relays cannot read or alter them; node ids are hashes of identity keys; saved
+chats are encrypted at rest with a Keystore-wrapped key and saving is off by default; group admin commands are
+authenticated per recipient with a static-static pair key.
+
+**Known limitations:** display names/avatars/group lists in presence are not signed; group members are not
+authenticated to each other (a member with a modified client can impersonate another member inside a group; admin
+commands are not affected); open groups are readable by anyone nearby by design; removal is cryptographic only in
+join-request groups (key rotation) and advisory in password/open groups; groups have no forward secrecy; metadata
+(who is present, group membership, traffic patterns) is visible to nearby devices; notifications show sender and
+text unless the app lock is enabled; no external audit yet.

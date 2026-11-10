@@ -1,9 +1,12 @@
 # Wasl (وَصْل) — guide for AI coding agents
 
 Wasl is an offline chat app for Android (Flutter, Arabic UI, RTL): people nearby talk over **Bluetooth** (Google
-Nearby Connections) or **Wi-Fi / hotspot** (UDP discovery + TCP) with no internet and no server. Devices form a
-**mesh** (messages hop through other phones), private chats are end-to-end encrypted automatically (no passwords),
-and there are groups (open / password / join-request). Package `com.adam.wasl`. It started from the chat part of the
+Nearby Connections) or **Wi-Fi / hotspot** (UDP discovery + TCP) — or both at once, which turns the phone into a
+bridge between the two — with no internet and no server. Devices form a **mesh** (messages hop through other
+phones), private chats are end-to-end encrypted automatically (no passwords), and there are groups (open /
+password / join-request) with an owner and admins. Package `com.adam.wasl`. Open source, **GPL-3.0-or-later**
+(`LICENSE`); human-facing docs: `README.md`, `CONTRIBUTING.md`, `SECURITY.md` (threat model + known limits),
+`docs/PROTOCOL.md` (wire protocol — keep it in sync with the code). It started from the chat part of the
 owner's older app ILN (`~/Downloads/ILN_App/iln_flutter`) — chat session, file transfer, voice, calls and the Kotlin
 helpers come from there.
 
@@ -20,7 +23,7 @@ helpers come from there.
 
 ```bash
 flutter analyze          # must say "No issues found!"
-flutter test             # test/mesh_test.dart — mesh routing, private chat over mesh, groups, storage
+flutter test             # mesh_test (routing, private chat, groups, group admin, storage), bridge_test, ui_test
 python3 tool/generate_icon.py   # regenerate launcher icon (needs Pillow)
 ./scripts/build_release.sh      # signed + obfuscated → Releases/<ver>v/ (uses JDK 21 from ~/Downloads/Files/toolchains)
 ```
@@ -29,7 +32,8 @@ New version: bump `version` in `pubspec.yaml` **and** `appVersion` in `lib/core/
 `release_notes/<X.Y>v.txt`. The build script refuses to run without the notes.
 
 Folder layout on disk: `Wasl/Wasl_App/` (this repo) and `Wasl/Signing_Key/` (keystore + passwords — outside the repo
-on purpose, never commit or print them).
+on purpose, never commit or print them). Without the key Gradle signs with the debug key (so contributors and CI can
+build); only `build_release.sh` insists on it.
 
 ## Layout
 
@@ -44,33 +48,39 @@ lib/
                             ProfileStore, Avatars (small JPEGs stored by hash)
     settings/app_settings.dart   theme, accent, saveChats (default false), PIN lock
     storage/vault.dart      master key wrapped by Android Keystore; encrypted JSON files
-    storage/chat_store.dart saved chats index + messages + joined groups + blocked ids
+    storage/chat_store.dart saved chats index + messages + joined groups + blocked ids + per-chat prefs (pin / mute)
     platform/               system_bridge.dart (channel wasl/system), secure_clipboard.dart
     theme/app_theme.dart    Palette tokens (context.palette), AccentTheme presets, avatarColors
   mesh/
     mesh_link.dart          MeshLink: neighbour links carrying string frames
     lan_link.dart           Wi-Fi: UDP beacons + one TCP connection per neighbour (smaller id dials)
     nearby_link.dart        Bluetooth: Nearby P2P_CLUSTER, auto-accept, ≤ 5 links
-    mesh_router.dart        presence, flooding with dedupe + neighbour suppression, learned unicast routes;
-                            GroupMode / GroupAd / MeshNode
+    dual_link.dart          both at once (link ids `w:` / `b:`); Wi-Fi outranks Bluetooth for the same peer
+    mesh_router.dart        presence, flooding with dedupe + neighbour suppression, learned unicast routes,
+                            link-level fragmentation of oversized frames; GroupMode / GroupAd / MeshNode
     peer_link.dart          binds a ChatSession to a peer over the mesh (session ids, simultaneous-dial tie-break)
   features/
     hub/chat_hub.dart       ChatHub singleton: link + router + DirectChat/GroupChat objects, persistence,
-                            notifications, calls, join requests, avatars
+                            notifications (open / reply / mark read), mute + pin, calls, join requests, avatars,
+                            group administration (kick / admins / rename / moderator delete / state sync)
     chat/
       chat_page.dart        the conversation screen (direct + group)
       core/                 secure_channel.dart, chat_session.dart (messages + file transfer), frame_transport.dart,
                             chat_link.dart (session + supportsVideo for the input widgets), chat_errors, nearby_requirements
       call/, voice/, widgets/   WebRTC calls, voice notes, bubbles / input bar / media (from ILN)
-    groups/                 group.dart (GroupInfo + keys), group_session.dart (GroupSession extends ChatSession),
-                            group_ui.dart (create sheet, join flow, info screen)
-    home/                   transport_screen.dart (Bluetooth / Wi-Fi), home_screen.dart (chats • groups • nearby)
+    groups/                 group.dart (GroupInfo: keys, roles, admin state + GroupOps: sealed admin commands),
+                            group_session.dart (GroupSession extends ChatSession),
+                            group_ui.dart (create sheet, join flow, info screen, member sheet)
+    home/                   transport_screen.dart (Bluetooth / Wi-Fi / both), home_screen.dart (swipeable pages:
+                            chats incl. joined groups • groups • nearby people + groups)
     onboarding/profile_editor.dart, settings/settings_screen.dart, lock/app_lock.dart
-  widgets/                  ui.dart (Avatar, AppCard, buttons, EmptyState…), feedback.dart (showToast, dialogs), focus_guard.dart
+  widgets/                  ui.dart (Avatar, AppCard, buttons, EmptyState…), feedback.dart (showToast, dialogs), focus_guard.dart,
+                            cartoon_avatar.dart (24 avatars painted in code), avatar_render.dart (avatar → PNG for notifications)
 android/app/src/main/kotlin/com/adam/wasl/
   MainActivity.kt    channels: wasl/system (bluetooth/wifi/notify/service/files) + wasl/vault (keystore wrap, biometric)
   KeyVault.kt        Keystore AES key + BiometricGate
-  ChatService.kt     foreground service + Notifications (no names/content); onTaskRemoved kills the process
+  ChatService.kt     foreground service + Notifications (MessagingStyle per chat, reply / mark-read receiver);
+                     onTaskRemoved kills the process
   ChatFiles.kt, NativeCrypto.kt (wasl/crypto), VoiceRecorder.kt (wasl/voice), VideoCompressor.kt (wasl/video), ImageCompressor.kt
 ```
 
@@ -82,7 +92,13 @@ android/app/src/main/kotlin/com/adam/wasl/
   weights 400–700 only.
 - Messages to the user: `showToast(context, ...)` (never `SnackBar`). Dialogs: `confirmDialog` / `infoDialog`.
 - Closing the keyboard: **always `hideKeyboard()`**, never `FocusScope.of(context).unfocus()`.
-- Never log message contents. Notifications never include names or text.
+- Never log message contents.
+- Notifications show sender + text **only when the app lock is off**; with the lock on use the generic
+  `SystemBridge.notify`. The phone's lock screen always gets the generic public version. Muted chats don't notify,
+  except when the user is mentioned.
+- Line width 120. Don't run a formatter over files you aren't otherwise changing.
+- Treat everything from the network as hostile: bound lengths and counts, validate ids with `MeshRouter.isId`, and
+  never trust a claimed sender without proof (see `SECURITY.md` for what is and isn't authenticated).
 
 ## Protocol invariants (covered by tests — keep them green)
 
@@ -90,6 +106,8 @@ android/app/src/main/kotlin/com/adam/wasl/
   `D` private-chat data, `U` control JSON, `H|id` neighbour hello (never routed). Max 6 hops. Dedupe by `src+pid`.
   A relay doesn't forward a broadcast to neighbours that are also neighbours of whoever handed it the packet.
   Unicast follows the neighbour the destination's last packet came through, else floods.
+- **Fragments**: a frame longer than `link.frameLimit(linkId)` goes out as `F|fid|i|n|part` (≤ 64 parts, in order,
+  never routed) and is reassembled by the neighbour (≤ 256 KiB). Duplicate links to one node: higher `link.rank` wins.
 - **Identity**: node id = first 8 bytes of SHA-256(static X25519 public key), hex. Presence with a key that doesn't
   hash to the id is dropped.
 - **Private chat** (`secure_channel.dart`, protocol v1): hello carries an ephemeral key + the static identity key;
@@ -102,7 +120,15 @@ android/app/src/main/kotlin/com/adam/wasl/
   size-limited (`MeshLink.groupFileLimit`).
 - **Groups**: body = base64(AES-GCM(groupKey, json), aad `wasl/group/v1|<id>`). open key = SHA-256 of the id (public by
   design); password key = Argon2id(password, salt from id); ask key = random, handed over sealed with
-  `Box.pairKey(owner, member)`. `check` = HKDF of the key, used to validate passwords/grants.
+  `Box.pairKey(owner, member)`. `check` = HKDF of the key, used to validate passwords/grants. A packet whose `s`
+  differs from the mesh source, or whose sender was removed, is dropped. Extra kinds: `typ`, `rd`, `rx`.
+- **Group admin** (`GroupOps`): commands never travel as group packets — each is sealed per recipient with
+  `Box.pairKey(sender, recipient, 'wasl/group-admin')`, carries an increasing `n` and `rev`, and is applied by
+  `GroupInfo.apply`. Owner: everything, and nobody can act on the owner. Admins: kick non-admins, unban, rename,
+  delete others' messages. Ask-mode groups rotate the key on kick. State converges via the ad `digest`; the owner's
+  state always wins.
+- **Additive changes only**: new packet kinds / fields that old versions ignore are fine (`react`, `fw`, `mn`, `h`,
+  `e`). Anything else on the direct channel needs a `protocolVersion` bump.
 - **Saving**: default off. A conversation is written to disk only if `saveOverride ?? AppSettings.saveChats`; media of
   saved chats moves to `vault/media/<id>/`. Unsaved chats live in memory until the hub stops.
 

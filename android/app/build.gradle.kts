@@ -52,10 +52,13 @@ android {
 
     buildTypes {
         release {
+            // من غير مفتاح التوقيع (المساهمين / CI): بنوقّع بمفتاح الـ debug عشان المشروع يتبني عادي.
+            // الإصدار الرسمي بيتبني بـ scripts/build_release.sh وده بيرفض يشتغل من غير المفتاح.
             signingConfig = if (keystoreProperties.containsKey("storeFile")) {
                 signingConfigs.getByName("release")
             } else {
-                throw GradleException("مفتاح التوقيع مش موجود في Wasl/Signing_Key — شوف README")
+                logger.warn("Wasl: مفتاح التوقيع مش موجود في Wasl/Signing_Key — التوقيع بمفتاح debug")
+                signingConfigs.getByName("debug")
             }
             isMinifyEnabled = true
             isShrinkResources = true

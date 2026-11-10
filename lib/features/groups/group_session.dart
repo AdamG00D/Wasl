@@ -200,7 +200,7 @@ class GroupSession extends ChatSession {
 
   void _setTyping(String id, String? name) {
     _typers.remove(id)?.$2.cancel();
-    if (name != null) {
+    if (name != null && _typers.length < 24) {
       _typers[id] = (name, Timer(const Duration(seconds: 5), () => _setTyping(id, null)));
     }
     final typing = _typers.isNotEmpty;

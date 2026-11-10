@@ -3,7 +3,7 @@ class AppConfig {
 
   static const String appName = 'Wasl';
   static const String appNameAr = 'وَصْل';
-  static const String appVersion = '1.0';
+  static const String appVersion = '1.1';
 
   /// معرّف خدمة الشبكة القريبة (Nearby Connections).
   static const String nearbyServiceId = 'com.adam.wasl.mesh';

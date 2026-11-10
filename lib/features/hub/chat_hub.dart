@@ -792,12 +792,15 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     g.requests.remove(req);
     notifyListeners();
     try {
-      if (!accept) {
-        await r.sendControl(req.nodeId, {'t': 'gr', 'g': g.id});
-        return;
-      }
       final node = r.nodes[req.nodeId];
       if (node == null) return;
+      if (!accept) {
+        // الرفض كمان مقفول بمفتاح مشترك مع صاحب الطلب (محدش غيري يقدر يرفض باسمي)
+        final pair = await Box.pairKey(_me.keyPair, node.publicKey, 'wasl/group-grant');
+        final sealed = await Box.seal(pair, utf8.encode('no'), utf8.encode('wasl/reject|${g.id}|${req.nodeId}'));
+        await r.sendControl(req.nodeId, {'t': 'gr', 'g': g.id, 'd': base64.encode(sealed)});
+        return;
+      }
       // الموافقة على حد كان متشال = رجّعناه
       g.info
         ..banned.remove(req.nodeId)
@@ -1094,7 +1097,17 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         } catch (_) {}
       case 'gr':
         final ad = _requestedAds[gid];
-        if (ad == null || ad.owner != src) return;
+        final node = r.nodes[src];
+        final d = m['d'];
+        if (ad == null || node == null || ad.owner != src || d is! String || d.length > 256) return;
+        try {
+          final pair = await Box.pairKey(_me.keyPair, node.publicKey, 'wasl/group-grant');
+          final ok = await Box.open(pair, base64.decode(d), utf8.encode('wasl/reject|$gid|$myId'));
+          if (ok == null) return;
+        } catch (_) {
+          return;
+        }
+        if (!pendingJoins.contains(gid)) return;
         pendingJoins.remove(gid);
         _requestedAds.remove(gid);
         notifyListeners();

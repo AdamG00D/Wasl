@@ -369,6 +369,12 @@ Future<void> showMemberSheet(BuildContext context, GroupChat g, String id, {Stri
                 subtitle: const Text('مشفّرة بينكم انتوا الاتنين بس'),
                 onTap: () => Navigator.pop(ctx, 'chat'),
               ),
+            if (node != null && !blocked && (hub.link?.supportsCalls ?? false))
+              ListTile(
+                leading: const Icon(Icons.call_outlined),
+                title: const Text('مكالمة صوتية'),
+                onTap: () => Navigator.pop(ctx, 'call'),
+              ),
             if (onMention != null)
               ListTile(
                 leading: const Icon(Icons.alternate_email_rounded),
@@ -409,6 +415,9 @@ Future<void> showMemberSheet(BuildContext context, GroupChat g, String id, {Stri
     case 'chat':
       final chat = hub.openDirect(id);
       if (chat != null) await ChatPage.open(context, chat);
+    case 'call':
+      final chat = hub.openDirect(id);
+      if (chat != null) await ChatPage.open(context, chat, startCall: 'voice');
     case 'mention':
       onMention?.call();
     case 'admin':
