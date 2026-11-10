@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # بناء نسخة Release موقّعة ومشوّشة وتنظيمها في مجلد Releases (جوه المشروع، برا Git):
-#   Releases/<X.Y>v/Wasl_<X.Y>v.apk + Release_Notes.txt
-#   Releases/Wasl.apk  ← آخر إصدار
+#   Releases/<X.Y>v/
+#     Wasl-<X.Y>-arm64-v8a.apk     أغلب الموبايلات
+#     Wasl-<X.Y>-armeabi-v7a.apk   الموبايلات القديمة
+#     Wasl-<X.Y>-x86_64.apk        المحاكي / Chromebook
+#     Wasl-<X.Y>-universal.apk     أي موبايل (أكبر)
+#     SHA256SUMS.txt + Release_Notes.txt
+#   Releases/Wasl.apk  ← آخر إصدار (النسخة الشاملة)
+#
+# كل النسخ بنفس رقم الإصدار الداخلي (versionCode): اللي سطّب نسخة يقدر يحدّث بأي نسخة تانية.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -20,28 +27,52 @@ fi
 # 1.0.0+1 ← 1.0
 VERSION=$(grep '^version:' pubspec.yaml | sed -E 's/version: ([0-9]+)\.([0-9]+).*/\1.\2/')
 NOTES="release_notes/${VERSION}v.txt"
-if [ ! -f "$NOTES" ]; then
-  echo "⚠️  اكتب ملاحظات الإصدار الأول في: $NOTES"
-  exit 1
-fi
+NOTES_EN="release_notes/${VERSION}v.en.md"
+for f in "$NOTES" "$NOTES_EN"; do
+  if [ ! -f "$f" ]; then
+    echo "⚠️  اكتب ملاحظات الإصدار الأول في: $f (عربي .txt + إنجليزي .en.md)"
+    exit 1
+  fi
+done
 
 flutter pub get
 flutter analyze
 flutter test
-flutter build apk --release --obfuscate --split-debug-info="build/symbols/${VERSION}"
-
-APK=build/app/outputs/flutter-apk/app-release.apk
-REL="Releases"
-OUT="$REL/${VERSION}v"
+SYMBOLS="build/symbols/${VERSION}"
+COMMON=(--release --obfuscate --split-debug-info="$SYMBOLS" -P force-version-code-ignoring-abi=true)
+APKS=build/app/outputs/flutter-apk
+OUT="Releases/${VERSION}v"
 mkdir -p "$OUT"
-cp "$APK" "$OUT/Wasl_${VERSION}v.apk"
+rm -f "$OUT"/Wasl-*.apk "$OUT"/SHA256SUMS.txt
+
+# 1) النسخة الشاملة
+flutter build apk "${COMMON[@]}"
+cp "$APKS/app-release.apk" "$OUT/Wasl-${VERSION}-universal.apk"
+
+# 2) نسخة لكل نوع معالج
+flutter build apk "${COMMON[@]}" --split-per-abi
+for ABI in arm64-v8a armeabi-v7a x86_64; do
+  cp "$APKS/app-${ABI}-release.apk" "$OUT/Wasl-${VERSION}-${ABI}.apk"
+done
+
 cp "$NOTES" "$OUT/Release_Notes.txt"
-cp "$APK" "$REL/Wasl.apk"
+(cd "$OUT" && sha256sum Wasl-*.apk > SHA256SUMS.txt)
+
+# ملاحظات GitHub: الإنجليزي فوق والعربي تحته
+{
+  cat "$NOTES_EN"
+  printf '\n---\n\n<div dir="rtl">\n\n'
+  sed -e 's/^=\+$//' -e 's/^-\+$//' "$NOTES"
+  printf '\n</div>\n'
+} > "$OUT/github_release.md"
+cp "$OUT/Wasl-${VERSION}-universal.apk" Releases/Wasl.apk
 
 # نقفل Gradle عشان ميفضلش ماسك ~2 جيجا رام
 (cd android && ./gradlew --stop >/dev/null 2>&1) || true
 
 echo
-echo "✅ الإصدار ${VERSION}v جاهز:"
-echo "   $(realpath "$OUT/Wasl_${VERSION}v.apk")"
-echo "   $(realpath "$REL/Wasl.apk")  (آخر إصدار)"
+echo "✅ الإصدار ${VERSION}v جاهز في $(realpath "$OUT"):"
+(cd "$OUT" && ls -lh Wasl-*.apk | awk '{print "   " $5 "\t" $9}')
+echo
+echo "النشر على GitHub (بعد ما تعمل تاج v${VERSION} وتعمل له push):"
+echo "   gh release create v${VERSION} $OUT/Wasl-*.apk $OUT/SHA256SUMS.txt --title \"Wasl ${VERSION}\" --notes-file $OUT/github_release.md"
