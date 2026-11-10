@@ -12,7 +12,7 @@ import 'frame_transport.dart';
 class ChannelPacket {
   ChannelPacket(this.kind, {this.id, this.text, this.time, this.data = const {}});
 
-  /// msg | ack | typing | read | del | edit | file-* | call
+  /// msg | ack | typing | read | del | edit | react | file-* | call
   final String kind;
   final String? id;
   final String? text;
@@ -150,12 +150,14 @@ class SecureChannel {
     });
   }
 
-  Future<void> sendMessage(String id, String text, {Map<String, dynamic>? reply}) => _sendEncrypted({
+  Future<void> sendMessage(String id, String text, {Map<String, dynamic>? reply, bool forwarded = false}) =>
+      _sendEncrypted({
         'k': 'msg',
         'id': id,
         'text': text,
         'ts': DateTime.now().millisecondsSinceEpoch,
         'rp': ?reply,
+        if (forwarded) 'fw': true,
       });
 
   Future<void> sendAck(String id) => _sendEncrypted({'k': 'ack', 'id': id});
@@ -167,6 +169,7 @@ class SecureChannel {
     'read', // الرسايل اتقرت
     'del', // حذف رسالة عند الكل
     'edit', // تعديل رسالة
+    'react', // تفاعل بإيموجي (النسخ الأقدم بتتجاهله)
     'file-start',
     'file-chunk',
     'file-end',

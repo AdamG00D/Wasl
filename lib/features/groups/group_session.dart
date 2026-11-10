@@ -28,13 +28,18 @@ class _GroupIncoming {
 /// بس الرسايل بتتبث لكل الأعضاء مشفرة بمفتاح الجروب.
 ///
 /// الحزمة (قبل التشفير): {k: النوع, s: معرّف المرسل, n: اسمه, ...}
-///   msg  رسالة نص            del  حذف عند الكل          edit تعديل
+///   msg  رسالة نص (+ mn منشن، fw محوّلة)   del  حذف عند الكل      edit تعديل
 ///   fs / fc / fe  ملف (بداية / جزء / نهاية بالهاش)       fx  إلغاء ملف
 ///   join / leave  حد دخل / خرج
+///   typ  بيكتب دلوقتي          rd  قريت الرسايل دي         rx  تفاعل بإيموجي
+///
+/// المعرّف `s` لازم يساوي مصدر الإطار في الشبكة، واللي اتشال من الجروب رسايله بتترمي.
+/// أوامر الإدارة (إزالة عضو، مديرين، حذف رسالة حد تاني) مش هنا: بتتبعت موثّقة لكل عضو
+/// لوحده — شوف [GroupOps].
 class GroupSession extends ChatSession {
   GroupSession({
     required this.groupId,
-    required this.groupKey,
+    required List<int> groupKey,
     required this.myId,
     required super.myName,
     required this.transmit,
@@ -44,14 +49,41 @@ class GroupSession extends ChatSession {
     required super.allowVideo,
     required super.maxFileBytes,
     super.mediaRoot,
-  }) : _aad = utf8.encode('wasl/group/v1|$groupId') {
+    this.isBanned,
+    this.audience,
+  })  : _key = groupKey,
+        _aad = utf8.encode('wasl/group/v1|$groupId') {
     state = SessionState.ready;
     _stallTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkStalled());
   }
 
   final String groupId;
-  final List<int> groupKey;
   final String myId;
+
+  List<int> _key;
+  List<int> get groupKey => _key;
+
+  /// مفتاح جديد للجروب (بعد إزالة عضو من جروب بطلب انضمام).
+  void updateKey(List<int> key) => _key = key;
+
+  /// العضو ده متشال من الجروب؟ (رسايله بتترمي)
+  final bool Function(String id)? isBanned;
+
+  /// الأعضاء اللي واصلين لهم دلوقتي (عشان نعرف "الكل قرا").
+  final Iterable<String> Function()? audience;
+
+  @override
+  String get myReactionKey => myId;
+
+  /// رسايل وصلت ولسه مبلّغناش إنها اتقرت.
+  final List<String> _unread = [];
+
+  /// اللي بيكتبوا دلوقتي: المعرّف ← (الاسم، مؤقت الإخفاء).
+  final Map<String, (String, Timer)> _typers = {};
+  DateTime _lastTyping = DateTime.fromMillisecondsSinceEpoch(0);
+
+  @override
+  List<String> get typingNames => [for (final t in _typers.values) t.$1];
 
   /// يبث حزمة مشفرة لأعضاء الجروب.
   final Future<void> Function(String body) transmit;
@@ -88,16 +120,21 @@ class GroupSession extends ChatSession {
   Future<void> _emit(Map<String, dynamic> packet) async {
     packet['s'] = myId;
     packet['n'] = myName;
-    final box = await Box.seal(groupKey, utf8.encode(jsonEncode(packet)), _aad);
+    final box = await Box.seal(_key, utf8.encode(jsonEncode(packet)), _aad);
     await transmit(base64.encode(box));
   }
 
   // ---------------- الإرسال ----------------
 
   @override
-  Future<void> send(String raw, {ReplyInfo? reply}) async {
+  Future<void> send(String raw, {ReplyInfo? reply, Map<String, String>? mentions, bool forwarded = false}) async {
     final text = raw.trim();
     if (text.isEmpty || !canSend) return;
+    // المنشن اللي اسمه لسه موجود في النص بس
+    final mn = <String, String>{
+      for (final e in (mentions ?? const <String, String>{}).entries)
+        if (text.contains('@${e.value}')) e.key: e.value,
+    };
     final clipped =
         text.length > SecureChannel.maxTextLength ? text.substring(0, SecureChannel.maxTextLength) : text;
     final msg = ChatMessage(
@@ -106,6 +143,8 @@ class GroupSession extends ChatSession {
       kind: MessageKind.mine,
       status: MessageStatus.sending,
       reply: reply,
+      forwarded: forwarded,
+      mentions: mn,
     );
     messages.add(msg);
     notifyListeners();
@@ -116,6 +155,8 @@ class GroupSession extends ChatSession {
         'text': clipped,
         'ts': msg.time.millisecondsSinceEpoch,
         'rp': ?reply?.toWire(),
+        if (mn.isNotEmpty) 'mn': mn,
+        if (forwarded) 'fw': true,
       });
       msg.status = MessageStatus.sent;
     } catch (_) {
@@ -124,11 +165,86 @@ class GroupSession extends ChatSession {
     notifyListeners();
   }
 
+  /// الجروب مفتوح قدامي: نبلّغ الأعضاء إني قريت (الملفات بعد ما توصل كاملة).
   @override
-  void markSeen() {}
+  void markSeen() {
+    if (_unread.isEmpty || !canSend) return;
+    final ids = <String>[];
+    _unread.removeWhere((id) {
+      final m = findById(id);
+      if (m == null) return true;
+      final media = m.media;
+      if (media != null && !media.ready) return media.failed || media.canceled;
+      ids.add(id);
+      return true;
+    });
+    for (var i = 0; i < ids.length; i += 40) {
+      final part = ids.sublist(i, math.min(i + 40, ids.length));
+      _emit({'k': 'rd', 'ids': part}).catchError((Object _) {
+        _unread.insertAll(0, part);
+      });
+    }
+  }
 
   @override
-  void userTyping() {}
+  void userTyping() {
+    if (!canSend) return;
+    final now = DateTime.now();
+    if (now.difference(_lastTyping) < const Duration(seconds: 3)) return;
+    _lastTyping = now;
+    _emit({'k': 'typ'}).catchError((Object _) {});
+  }
+
+  void _setTyping(String id, String? name) {
+    _typers.remove(id)?.$2.cancel();
+    if (name != null) {
+      _typers[id] = (name, Timer(const Duration(seconds: 5), () => _setTyping(id, null)));
+    }
+    final typing = _typers.isNotEmpty;
+    if (typing != peerTyping || name != null) {
+      peerTyping = typing;
+      notifyListeners();
+    }
+  }
+
+  /// ✓✓ رمادي = حد قرا • ✓✓ ملوّن = كل اللي واصلين لهم قروا.
+  void _refreshStatus(ChatMessage m) {
+    if (m.readBy.isEmpty || m.status == MessageStatus.failed || m.status == MessageStatus.sending) return;
+    final all = audience?.call().every(m.readBy.contains) ?? true;
+    m.status = all ? MessageStatus.read : MessageStatus.delivered;
+  }
+
+  @override
+  Future<void> react(ChatMessage m, String? emoji) async {
+    if (m.kind == MessageKind.system || !canSend) return;
+    final next = emoji == null || m.reactions[myId] == emoji ? null : emoji;
+    if (next != null && !ChatSession.validReaction(next)) return;
+    if (next == null) {
+      m.reactions.remove(myId);
+    } else {
+      m.reactions[myId] = next;
+    }
+    notifyListeners();
+    try {
+      await _emit({'k': 'rx', 'id': m.id, 'e': next ?? '', 'o': m.kind == MessageKind.mine ? myId : m.senderId});
+    } catch (_) {}
+  }
+
+  /// مدير الجروب حذف رسالة العضو ده عند الكل (الأمر نفسه بيتأكد منه برا).
+  void removeByModerator(String messageId, String senderId) {
+    for (final m in messages.toList()) {
+      if (m.id != messageId) continue;
+      final owner = m.kind == MessageKind.mine ? myId : m.senderId;
+      if (owner != senderId) continue;
+      if (m.kind == MessageKind.mine) _canceledOut.add(m.id);
+      if (_incoming.containsKey(m.id)) {
+        _abortIncoming(m.id, remove: true);
+      } else {
+        _remove(m);
+      }
+      return;
+    }
+  }
 
   @override
   bool canEdit(ChatMessage m) =>
@@ -182,6 +298,7 @@ class GroupSession extends ChatSession {
 
   void _remove(ChatMessage m) {
     messages.remove(m);
+    _unread.remove(m.id);
     final path = m.media?.path;
     if (m.kind == MessageKind.theirs && path != null) ChatSession.deleteQuietly(File(path));
     notifyListeners();
@@ -195,6 +312,7 @@ class GroupSession extends ChatSession {
     ReplyInfo? reply,
     int? durationMs,
     List<int>? waveform,
+    bool forwarded = false,
   }) async {
     if (!canSend) return 'مفيش حد من الجروب واصلين له دلوقتي';
     if (kind == MediaKind.video && !allowVideo) return 'الفيديو متاح في الواي فاي بس';
@@ -227,6 +345,7 @@ class GroupSession extends ChatSession {
       status: MessageStatus.sending,
       media: media,
       reply: reply,
+      forwarded: forwarded,
     );
     messages.add(msg);
     notifyListeners();
@@ -255,6 +374,7 @@ class GroupSession extends ChatSession {
         'dur': ?media.durationMs,
         'wave': ?media.waveform,
         'rp': ?msg.reply?.toWire(),
+        if (msg.forwarded) 'fw': true,
       });
       for (var i = 0; i < total; i++) {
         if (_canceledOut.contains(msg.id) || _closed) return;
@@ -297,16 +417,16 @@ class GroupSession extends ChatSession {
 
   // ---------------- الاستقبال ----------------
 
-  /// حزمة جروب وصلت من الشبكة.
-  void receive(String body) {
+  /// حزمة جروب وصلت من الشبكة ([src] = الجهاز اللي بعتها أصلاً).
+  void receive(String src, String body) {
     if (_closed || body.length > 400 * 1024) return;
-    _inQueue = _inQueue.then((_) => _handle(body)).catchError((Object _) {});
+    _inQueue = _inQueue.then((_) => _handle(src, body)).catchError((Object _) {});
   }
 
-  Future<void> _handle(String body) async {
+  Future<void> _handle(String src, String body) async {
     final List<int>? clear;
     try {
-      clear = await Box.open(groupKey, base64.decode(body), _aad);
+      clear = await Box.open(_key, base64.decode(body), _aad);
     } catch (_) {
       return;
     }
@@ -319,6 +439,8 @@ class GroupSession extends ChatSession {
     }
     final sender = '${p['s'] ?? ''}';
     if (sender.isEmpty || sender.length > 32 || sender == myId) return;
+    // محدش يبعت باسم حد تاني، واللي اتشال من الجروب مبنسمعلوش
+    if (sender != src || (isBanned?.call(sender) ?? false)) return;
     var name = '${p['n'] ?? ''}'.replaceAll(RegExp(r'[\u0000-\u001f]'), '').trim();
     if (name.isEmpty) name = 'مجهول';
     if (name.length > 24) name = name.substring(0, 24);
@@ -343,11 +465,44 @@ class GroupSession extends ChatSession {
           sender: name,
           senderId: sender,
           reply: ReplyInfo.fromGroupWire(p['rp'], myId),
+          forwarded: p['fw'] == true,
+          mentions: cleanMentions(p['mn']),
         );
+        msg.mentionsMe = msg.mentions.containsKey(myId);
         messages.add(msg);
+        _unread.add(id);
+        _setTyping(sender, null);
         HapticFeedback.lightImpact();
         notifyListeners();
         onIncomingMessage?.call(msg);
+      case 'typ':
+        _setTyping(sender, name);
+      case 'rd':
+        var changed = false;
+        for (final raw in (p['ids'] as List? ?? const []).take(64)) {
+          final m = findById('$raw');
+          if (m == null || m.kind != MessageKind.mine) continue;
+          if (m.readBy.length < 256 && m.readBy.add(sender)) changed = true;
+          _refreshStatus(m);
+        }
+        if (changed) notifyListeners();
+      case 'rx':
+        final owner = '${p['o'] ?? ''}';
+        final e = '${p['e'] ?? ''}';
+        ChatMessage? target;
+        for (final m in messages.reversed) {
+          if (m.id != id) continue;
+          if (owner == myId ? m.kind == MessageKind.mine : m.senderId == owner) target = m;
+          break;
+        }
+        if (target == null) return;
+        if (e.isEmpty) {
+          target.reactions.remove(sender);
+        } else if (ChatSession.validReaction(e) && target.reactions.length < 64) {
+          target.reactions[sender] = e;
+          if (target.kind == MessageKind.mine) onReaction?.call(target, e, name);
+        }
+        notifyListeners();
       case 'edit':
         final m = theirs();
         final text = '${p['text'] ?? ''}';
@@ -366,6 +521,7 @@ class GroupSession extends ChatSession {
       case 'join':
         addSystem('$name دخل الجروب');
       case 'leave':
+        _setTyping(sender, null);
         addSystem('$name خرج من الجروب');
       case 'fs':
         if (id.isEmpty || id.length > 80 || findById(id) != null) return;
@@ -395,9 +551,12 @@ class GroupSession extends ChatSession {
             waveform: wave,
           ),
           reply: ReplyInfo.fromGroupWire(p['rp'], myId),
+          forwarded: p['fw'] == true,
         );
         _incoming[id] = _GroupIncoming(msg, file, file.openWrite(), total);
         messages.add(msg);
+        _unread.add(id);
+        _setTyping(sender, null);
         HapticFeedback.lightImpact();
         notifyListeners();
         onIncomingMessage?.call(msg);
@@ -443,6 +602,7 @@ class GroupSession extends ChatSession {
           media.progress = 1;
         }
         notifyListeners();
+        if (viewing) markSeen();
     }
   }
 
@@ -481,6 +641,10 @@ class GroupSession extends ChatSession {
   void dispose() {
     _closed = true;
     _stallTimer?.cancel();
+    for (final t in _typers.values) {
+      t.$2.cancel();
+    }
+    _typers.clear();
     for (final f in _incoming.values) {
       f.sink.close().catchError((Object _) {});
     }

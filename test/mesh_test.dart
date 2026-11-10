@@ -32,7 +32,7 @@ class Device {
       },
     );
     router.onData = _onData;
-    router.onGroup = (g, src, body) => groupSessions[g]?.receive(body);
+    router.onGroup = (g, src, body) => groupSessions[g]?.receive(src, body);
   }
 
   final Profile profile;
@@ -90,6 +90,10 @@ class Device {
       allowVideo: true,
       maxFileBytes: 8 * 1024 * 1024,
       mediaRoot: root,
+      audience: () => [
+        for (final n in router.nodes.values)
+          if (n.groups.any((g) => g.id == info.id)) n.id,
+      ],
     );
     groupSessions[info.id] = s;
     router.announce();
@@ -251,6 +255,55 @@ void main() {
       await waitFor(() => !sc.messages.contains(got));
     });
 
+    test('"بيكتب..." و"اتقرت" بيوصلوا للطرف التاني', () async {
+      final a = await device('a'), b = await device('b');
+      net.connect(a.id, b.id);
+      await waitFor(() => a.router.reachable(b.id) && b.router.reachable(a.id));
+      a.dial(b.id);
+      final sa = a.sessionFor(b.id);
+      await waitFor(() => sa.canSend && (b.sessions[a.id]?.canSend ?? false));
+      final sb = b.sessions[a.id]!;
+
+      sb.userTyping();
+      await waitFor(() => sa.peerTyping, what: 'بيكتب');
+
+      await sa.send('هاي');
+      await waitFor(() => sb.messages.any((m) => m.text == 'هاي'));
+      final mine = sa.messages.firstWhere((m) => m.kind == MessageKind.mine);
+      await waitFor(() => mine.status == MessageStatus.delivered, what: 'وصلت');
+      sb.markSeen();
+      await waitFor(() => mine.status == MessageStatus.read, what: 'اتقرت');
+    });
+
+    test('تفاعل بإيموجي ورسالة محوّلة في الخاص', () async {
+      final a = await device('a'), b = await device('b');
+      net.connect(a.id, b.id);
+      await waitFor(() => a.router.reachable(b.id) && b.router.reachable(a.id));
+      a.dial(b.id);
+      final sa = a.sessionFor(b.id);
+      await waitFor(() => sa.canSend && (b.sessions[a.id]?.canSend ?? false));
+      final sb = b.sessions[a.id]!;
+
+      await sa.send('شوف دي', forwarded: true);
+      await waitFor(() => sb.messages.any((m) => m.text == 'شوف دي'));
+      final got = sb.messages.last, mine = sa.messages.last;
+      expect(got.forwarded, isTrue);
+
+      await sb.react(got, '❤️');
+      await waitFor(() => mine.reactions[ChatSession.reactPeer] == '❤️');
+      expect(got.reactions[ChatSession.reactMe], '❤️');
+      await sa.react(mine, '😂');
+      await waitFor(() => got.reactions[ChatSession.reactPeer] == '😂');
+      await sb.react(got, null);
+      await waitFor(() => !mine.reactions.containsKey(ChatSession.reactPeer));
+      expect(mine.reactions[ChatSession.reactMe], '😂');
+
+      // بيتحفظوا مع الرسالة
+      final back = ChatMessage.fromJson(jsonDecode(jsonEncode(mine.toJson())))!;
+      expect(back.forwarded, isTrue);
+      expect(back.reactions, mine.reactions);
+    });
+
     test('ملف بيتنقل كامل وسليم عبر جهاز في النص', () async {
       final a = await device('a'), b = await device('b'), c = await device('c');
       net.connect(a.id, b.id);
@@ -361,6 +414,60 @@ void main() {
       await waitFor(() => m.text == 'أهلاً يا جماعة');
       await ga.deleteForEveryone(mine);
       await waitFor(() => !gc.messages.contains(m));
+    });
+
+    test('في الجروب: بيكتب، اتقرت من مين، تفاعل، ومنشن', () async {
+      final a = await device('أحمد'), b = await device('بسمة'), c = await device('كريم');
+      net.connect(a.id, b.id);
+      net.connect(b.id, c.id);
+      await waitFor(() => a.router.reachable(c.id) && c.router.reachable(a.id));
+      final info = await GroupInfo.create(name: 'g', mode: GroupMode.open, owner: a.id);
+      final ga = a.joinGroup(info), gb = b.joinGroup(info), gc = c.joinGroup(info);
+      await waitFor(() => a.router.nodes.values.every((n) => n.groups.isNotEmpty));
+
+      gc.userTyping();
+      await waitFor(() => ga.peerTyping && gb.peerTyping, what: 'بيكتب');
+      expect(ga.typingNames, ['كريم']);
+
+      await ga.send('يا @بسمة تعالي', mentions: {b.id: 'بسمة', c.id: 'كريم'});
+      await waitFor(() => gb.messages.isNotEmpty && gc.messages.isNotEmpty);
+      // المنشن اللي اسمه مش في النص بيتشال
+      expect(gb.messages.last.mentions.keys, [b.id]);
+      expect(gb.messages.last.mentionsMe, isTrue);
+      expect(gc.messages.last.mentionsMe, isFalse);
+
+      final mine = ga.messages.last;
+      expect(mine.status, MessageStatus.sent);
+      gb.markSeen();
+      await waitFor(() => mine.readBy.contains(b.id), what: 'بسمة قرت');
+      expect(mine.status, MessageStatus.delivered); // لسه كريم
+      gc.markSeen();
+      await waitFor(() => mine.status == MessageStatus.read, what: 'الكل قرا');
+      expect(mine.readBy, {b.id, c.id});
+
+      await gc.react(gc.messages.last, '👍');
+      await waitFor(() => mine.reactions[c.id] == '👍' && gb.messages.last.reactions[c.id] == '👍');
+      await gc.react(gc.messages.last, '👍'); // نفس الإيموجي تاني = يتشال
+      await waitFor(() => mine.reactions.isEmpty);
+    });
+
+    test('محدش يبعت في الجروب باسم عضو تاني', () async {
+      final a = await device('a'), b = await device('b'), c = await device('c');
+      net.connect(a.id, b.id);
+      net.connect(a.id, c.id);
+      await waitFor(() => a.router.reachable(b.id) && a.router.reachable(c.id));
+      final info = await GroupInfo.create(name: 'g', mode: GroupMode.open, owner: a.id);
+      final ga = a.joinGroup(info);
+      b.joinGroup(info);
+      // b بيشفّر بمفتاح الجروب رسالة مكتوب فيها إن اللي بعتها c
+      final forged = await Box.seal(
+        info.key,
+        utf8.encode(jsonEncode({'k': 'msg', 'id': 'x1', 'text': 'مزيفة', 's': c.id, 'n': 'c'})),
+        utf8.encode('wasl/group/v1|${info.id}'),
+      );
+      await b.router.sendGroup(info.id, base64.encode(forged));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(ga.messages, isEmpty);
     });
 
     test('مفتاح غلط: الرسايل مبتتفكش', () async {

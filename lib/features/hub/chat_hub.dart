@@ -697,7 +697,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
 
   void _onGroup(String groupId, String src, String body) {
     if (_store.blocked.contains(src)) return;
-    _groups[groupId]?.session.receive(body);
+    _groups[groupId]?.session.receive(src, body);
   }
 
   Future<void> _onControl(String src, Map<String, dynamic> m) async {

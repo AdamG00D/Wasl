@@ -167,7 +167,26 @@ class ChatMessage {
     this.reply,
     this.sender,
     this.senderId,
-  }) : time = time ?? DateTime.now();
+    this.forwarded = false,
+    Map<String, String>? mentions,
+  })  : time = time ?? DateTime.now(),
+        mentions = mentions ?? const {};
+
+  /// الرسالة محوّلة من محادثة تانية.
+  final bool forwarded;
+
+  /// منشن: معرّف الشخص ← اسمه وقت الإرسال (النص فيه "@الاسم").
+  final Map<String, String> mentions;
+
+  /// الرسالة فيها منشن ليّا.
+  bool mentionsMe = false;
+
+  /// التفاعلات: صاحب التفاعل ← الإيموجي.
+  /// في الخاص المفتاحين [ChatSession.reactMe] و[ChatSession.reactPeer]، وفي الجروب معرّفات الأعضاء.
+  final Map<String, String> reactions = {};
+
+  /// في الجروبات: مين قرا رسالتي (معرّفات).
+  final Set<String> readBy = {};
 
   /// في الجروبات: اسم اللي بعت الرسالة ومعرّفه.
   final String? sender;
@@ -200,6 +219,11 @@ class ChatMessage {
         'ts': time.millisecondsSinceEpoch,
         'st': status.index,
         if (edited) 'e': true,
+        if (forwarded) 'fw': true,
+        if (mentionsMe) 'mm': true,
+        if (mentions.isNotEmpty) 'mn': mentions,
+        if (reactions.isNotEmpty) 'rx': reactions,
+        if (readBy.isNotEmpty) 'rb': readBy.toList(),
         's': ?sender,
         'si': ?senderId,
         'rp': ?reply?.toJson(),
@@ -229,11 +253,30 @@ class ChatMessage {
         reply: ReplyInfo.fromJson(raw['rp']),
         sender: raw['s'] as String?,
         senderId: raw['si'] as String?,
-      )..edited = raw['e'] == true;
+        forwarded: raw['fw'] == true,
+        mentions: cleanMentions(raw['mn']),
+      )
+        ..edited = raw['e'] == true
+        ..mentionsMe = raw['mm'] == true
+        ..reactions.addAll(cleanMentions(raw['rx'], maxValue: 16))
+        ..readBy.addAll((raw['rb'] as List? ?? const []).whereType<String>().take(256));
     } catch (_) {
       return null;
     }
   }
+}
+
+/// خريطة نصوص جاية من الشبكة أو التخزين (منشن / تفاعلات) بعد تنضيفها.
+Map<String, String> cleanMentions(Object? raw, {int maxValue = 24, int maxEntries = 64}) {
+  if (raw is! Map) return const {};
+  final out = <String, String>{};
+  for (final e in raw.entries) {
+    final k = e.key, v = e.value;
+    if (k is! String || v is! String || k.isEmpty || k.length > 32 || v.isEmpty || v.length > maxValue) continue;
+    out[k] = v.replaceAll(RegExp(r'[\u0000-\u001f]'), '');
+    if (out.length >= maxEntries) break;
+  }
+  return out;
 }
 
 /// ملف بيتبعت: بيكمّل من مكانه لو الاتصال وقف ورجع.
@@ -385,6 +428,19 @@ class ChatSession extends ChangeNotifier {
   /// يُستدعى مع كل رسالة واردة (للإشعارات).
   void Function(ChatMessage message)? onIncomingMessage;
 
+  /// مفاتيح التفاعلات في المحادثة الخاصة.
+  static const String reactMe = 'me';
+  static const String reactPeer = 'peer';
+
+  /// المفتاح اللي تفاعلي بيتسجل بيه (في الجروب: معرّفي).
+  String get myReactionKey => reactMe;
+
+  /// يُستدعى لما حد يتفاعل على رسالة ليّا (للإشعارات).
+  void Function(ChatMessage message, String emoji, String? who)? onReaction;
+
+  /// أسماء اللي بيكتبوا دلوقتي (الجروبات).
+  List<String> get typingNames => const [];
+
   /// الطرف التاني بيكتب دلوقتي.
   bool peerTyping = false;
   Timer? _typingTimer;
@@ -530,7 +586,7 @@ class ChatSession extends ChangeNotifier {
     return null;
   }
 
-  Future<void> send(String raw, {ReplyInfo? reply}) async {
+  Future<void> send(String raw, {ReplyInfo? reply, Map<String, String>? mentions, bool forwarded = false}) async {
     final text = raw.trim();
     final channel = _channel;
     if (text.isEmpty || channel == null || !canSend) return;
@@ -543,11 +599,12 @@ class ChatSession extends ChangeNotifier {
       kind: MessageKind.mine,
       status: MessageStatus.sending,
       reply: reply,
+      forwarded: forwarded,
     );
     messages.add(msg);
     notifyListeners();
     try {
-      await channel.sendMessage(msg.id, clipped, reply: reply?.toWire());
+      await channel.sendMessage(msg.id, clipped, reply: reply?.toWire(), forwarded: forwarded);
       if (msg.status == MessageStatus.sending) msg.status = MessageStatus.sent;
     } catch (_) {
       msg.status = MessageStatus.failed;
@@ -580,6 +637,31 @@ class ChatSession extends ChangeNotifier {
     channel.sendPacket('read', {'ids': ids}).catchError((_) {
       _unseen.insertAll(0, ids); // نحاول تاني المرة الجاية
     });
+  }
+
+  /// إيموجي مسموح كتفاعل؟ (قصير ومن غير حروف تحكم)
+  static bool validReaction(String e) =>
+      e.isNotEmpty && e.length <= 16 && !e.contains(RegExp(r'[\u0000-\u001f]'));
+
+  /// تفاعل بإيموجي على رسالة (null أو نفس الإيموجي تاني = يشيله).
+  Future<void> react(ChatMessage m, String? emoji) async {
+    if (m.kind == MessageKind.system || !canSend) return;
+    final next = emoji == null || m.reactions[reactMe] == emoji ? null : emoji;
+    if (next != null && !validReaction(next)) return;
+    if (next == null) {
+      m.reactions.remove(reactMe);
+    } else {
+      m.reactions[reactMe] = next;
+    }
+    notifyListeners();
+    try {
+      // 'by' من ناحيتي: الرسالة بتاعتي ولا بتاعته
+      await _channel?.sendPacket('react', {
+        'id': m.id,
+        'e': next ?? '',
+        'by': m.kind == MessageKind.mine ? 'me' : 'you',
+      });
+    } catch (_) {}
   }
 
   /// حذف رسالة عندي وعند الطرف التاني.
@@ -684,6 +766,7 @@ class ChatSession extends ChangeNotifier {
     ReplyInfo? reply,
     int? durationMs,
     List<int>? waveform,
+    bool forwarded = false,
   }) async {
     final channel = _channel;
     if (channel == null || !canSend) return 'مش متصل دلوقتي';
@@ -720,6 +803,7 @@ class ChatSession extends ChangeNotifier {
       status: MessageStatus.sending,
       media: media,
       reply: reply,
+      forwarded: forwarded,
     );
     messages.add(msg);
     notifyListeners();
@@ -784,6 +868,7 @@ class ChatSession extends ChangeNotifier {
             if (media.durationMs != null) 'dur': media.durationMs,
             if (media.waveform != null) 'wave': media.waveform,
             if (msg.reply != null) 'rp': msg.reply!.toWire(),
+            if (msg.forwarded) 'fw': true,
           });
           if (!sent) continue;
           o.announcedOn = ch;
@@ -1034,6 +1119,7 @@ class ChatSession extends ChangeNotifier {
             waveform: wave,
           ),
           reply: ReplyInfo.fromWire(d['rp']),
+          forwarded: d['fw'] == true,
         );
         _incomingFiles[id] = _IncomingFile(msg, file, file.openWrite(), cs, total, ackEvery);
         messages.add(msg);
@@ -1260,6 +1346,7 @@ class ChatSession extends ChangeNotifier {
           text: p.text ?? '',
           kind: MessageKind.theirs,
           reply: ReplyInfo.fromWire(p.data['rp']),
+          forwarded: p.data['fw'] == true,
         );
         messages.add(msg);
         _unseen.add(id);
@@ -1303,6 +1390,18 @@ class ChatSession extends ChangeNotifier {
           }
         }
         if (changed) notifyListeners();
+      case 'react':
+        // 'me' عند اللي بعت = رسالته هو = عندي "theirs"
+        final m = _find(p.data['id'] as String?, p.data['by'] == 'me' ? MessageKind.theirs : MessageKind.mine);
+        final e = '${p.data['e'] ?? ''}';
+        if (m == null) return;
+        if (e.isEmpty) {
+          m.reactions.remove(reactPeer);
+        } else if (validReaction(e)) {
+          m.reactions[reactPeer] = e;
+          if (m.kind == MessageKind.mine) onReaction?.call(m, e, null);
+        }
+        notifyListeners();
       case 'del':
         final m = _find(p.data['id'] as String?, MessageKind.theirs);
         if (m == null) return;
