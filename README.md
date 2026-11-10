@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="docs/images/banner.png" alt="وَصْل — شات مشفّر من غير إنترنت ولا سيرفر" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/AdamG00D/Wasl/actions/workflows/ci.yml"><img src="https://github.com/AdamG00D/Wasl/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/AdamG00D/Wasl/releases/latest"><img src="https://img.shields.io/github/v/release/AdamG00D/Wasl?label=%D8%A2%D8%AE%D8%B1%20%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1" alt="آخر إصدار"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Android-7%2B-3DDC84?logo=android&logoColor=white" alt="Android 7+">
+</p>
+
 # Wasl — وَصْل
 
 شات مشفّر **من غير إنترنت ومن غير سيرفر**: الموبايلات بتكلم بعض مباشرة بالبلوتوث أو على نفس الواي فاي / الهوت سبوت،
@@ -20,7 +31,12 @@
 - حفظ المحادثات **اختياري** (الافتراضي: لأ) ومشفّر بمفتاح جوه Android Keystore. قفل برقم سري / بصمة.
 - مفيش أي اتصال بالإنترنت، ومفيش تحليلات ولا إعلانات.
 
-## التشغيل
+## التحميل
+
+نزّل `Wasl_1.1.apk` من [آخر إصدار](https://github.com/AdamG00D/Wasl/releases/latest) وسطّبه (أندرويد 7 أو أحدث).
+لو الموبايل رفض، اسمح بالتثبيت من مصادر غير معروفة. وتقدر تتأكد من الملف بالبصمة المكتوبة جنبه (`.sha256`).
+
+## التشغيل من الكود
 
 محتاج [Flutter](https://docs.flutter.dev/get-started/install) (stable، Dart ≥ 3.9) و JDK 17 أو أحدث.
 
