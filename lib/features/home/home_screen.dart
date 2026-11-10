@@ -33,6 +33,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _hub = ChatHub.instance;
+  final _pages = PageController();
   int _tab = 0;
   List<Requirement>? _requirements;
   bool _checking = false;
@@ -57,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _noticeSub = _hub.notices.listen((text) {
       if (mounted) showToast(context, text, error: true);
     });
+    _hub.onOpenConversation = _openConversation;
     if (_isBluetooth) {
       _check(autoRequest: true);
     } else {
@@ -69,6 +71,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _joinSub?.cancel();
     _noticeSub?.cancel();
+    if (_hub.onOpenConversation == _openConversation) _hub.onOpenConversation = null;
+    _pages.dispose();
     super.dispose();
   }
 
@@ -135,7 +139,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) Navigator.of(context).pop();
   }
 
-  void _openPeople() => setState(() => _tab = 2);
+  void _goTo(int tab) {
+    if (!_pages.hasClients) return;
+    _pages.animateToPage(tab, duration: const Duration(milliseconds: 260), curve: Curves.easeOutCubic);
+  }
+
+  void _openPeople() => _goTo(2);
+
+  /// فتح محادثة من إشعار: نرجع للرئيسية ونفتحها فوقها.
+  void _openConversation(Conversation c) {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.settings.name == 'home' || r.isFirst);
+    ChatPage.open(context, c);
+  }
 
   Future<void> _createGroup() async {
     final g = await showCreateGroupSheet(context);
@@ -165,12 +181,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               children: [
                 _LinkProblems(link: link),
                 Expanded(
-                  child: IndexedStack(
-                    index: _tab,
+                  // اسحب يمين وشمال عشان تتنقل بين الصفحات
+                  child: PageView(
+                    controller: _pages,
+                    onPageChanged: (i) => setState(() => _tab = i),
                     children: [
-                      _ChatsTab(onNew: _openPeople),
-                      _GroupsTab(onCreate: _createGroup),
-                      _PeopleTab(isWifi: widget.kind != TransportKind.bluetooth),
+                      _KeepAlive(child: _ChatsTab(onNew: _openPeople)),
+                      _KeepAlive(child: _GroupsTab(onCreate: _createGroup)),
+                      _KeepAlive(child: _PeopleTab(isWifi: widget.kind != TransportKind.bluetooth)),
                     ],
                   ),
                 ),
@@ -204,20 +222,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ? null
                 : NavigationBar(
                     selectedIndex: _tab,
-                    onDestinationSelected: (i) => setState(() => _tab = i),
+                    onDestinationSelected: _goTo,
                     backgroundColor: p.surface,
                     indicatorColor: p.accentSoft,
                     surfaceTintColor: Colors.transparent,
                     height: 68,
                     destinations: [
                       NavigationDestination(
-                        icon: _NavIcon(Icons.chat_bubble_outline_rounded, _hub.directUnread),
-                        selectedIcon: _NavIcon(Icons.chat_bubble_rounded, _hub.directUnread, selected: true),
+                        icon: _NavIcon(Icons.chat_bubble_outline_rounded, _hub.totalUnread),
+                        selectedIcon: _NavIcon(Icons.chat_bubble_rounded, _hub.totalUnread, selected: true),
                         label: 'المحادثات',
                       ),
                       NavigationDestination(
-                        icon: _NavIcon(Icons.groups_outlined, _hub.groupUnread),
-                        selectedIcon: _NavIcon(Icons.groups_rounded, _hub.groupUnread, selected: true),
+                        icon: _NavIcon(Icons.groups_outlined, _hub.groupRequests),
+                        selectedIcon: _NavIcon(Icons.groups_rounded, _hub.groupRequests, selected: true),
                         label: 'الجروبات',
                       ),
                       const NavigationDestination(
@@ -231,6 +249,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         },
       ),
     );
+  }
+}
+
+/// بيحافظ على الصفحة (ومكان السكرول) وإنت بتسحب لصفحة تانية.
+class _KeepAlive extends StatefulWidget {
+  const _KeepAlive({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
@@ -402,6 +441,16 @@ class _ConversationTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: Icon(c.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded),
+                title: Text(c.pinned ? 'إلغاء التثبيت' : 'تثبيت فوق'),
+                onTap: () => Navigator.pop(ctx, 'pin'),
+              ),
+              ListTile(
+                leading: Icon(c.muted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined),
+                title: Text(c.muted ? 'إلغاء كتم الإشعارات' : 'كتم الإشعارات'),
+                onTap: () => Navigator.pop(ctx, 'mute'),
+              ),
+              ListTile(
                 leading: Icon(c.saved ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined),
                 title: Text(c.saved ? 'إلغاء حفظ المحادثة' : 'حفظ المحادثة على الموبايل'),
                 onTap: () => Navigator.pop(ctx, 'save'),
@@ -417,6 +466,14 @@ class _ConversationTile extends StatelessWidget {
       ),
     );
     if (action == null || !context.mounted) return;
+    if (action == 'pin') {
+      await hub.setPinned(c, !c.pinned);
+      return;
+    }
+    if (action == 'mute') {
+      await toggleMute(context, c);
+      return;
+    }
     if (action == 'save') {
       await hub.setSaved(c, !c.saved);
       if (context.mounted) showToast(context, c.saved ? 'المحادثة بتتحفظ على الموبايل' : 'المحادثة مبقتش بتتحفظ');
@@ -444,11 +501,13 @@ class _ConversationTile extends StatelessWidget {
     final last = c.lastMessage;
     final direct = c is DirectChat ? c : null;
     final group = c is GroupChat ? c : null;
-    final typing = direct != null && c.session.peerTyping;
+    final typing = c.session.peerTyping;
+    final mention = c.unread > 0 && group != null && (last?.mentionsMe ?? false);
 
     String preview;
     if (typing) {
-      preview = 'بيكتب...';
+      final names = c.session.typingNames;
+      preview = names.isEmpty ? 'بيكتب...' : '${names.first} بيكتب...';
     } else if (last == null) {
       preview = group != null ? 'جروب ${groupModeLabel(group.info.mode)}' : 'اضغط وابدأ الكلام';
     } else {
@@ -498,6 +557,10 @@ class _ConversationTile extends StatelessWidget {
                         const SizedBox(width: 5),
                         Icon(Icons.bookmark_rounded, size: 14, color: p.textMuted),
                       ],
+                      if (c.muted) ...[
+                        const SizedBox(width: 5),
+                        Icon(Icons.notifications_off_rounded, size: 14, color: p.textMuted),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -524,12 +587,25 @@ class _ConversationTile extends StatelessWidget {
                     style: TextStyle(color: c.unread > 0 ? p.accent : p.textMuted, fontSize: 12),
                   ),
                 const SizedBox(height: 5),
-                if (c.unread > 0)
-                  CountBadge(c.unread)
-                else if (requests > 0)
-                  Icon(Icons.person_add_alt_1_rounded, size: 18, color: p.accent)
-                else
-                  const SizedBox(height: 22),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (c.pinned) ...[
+                      Icon(Icons.push_pin_rounded, size: 15, color: p.textMuted),
+                      const SizedBox(width: 4),
+                    ],
+                    if (mention) ...[
+                      Icon(Icons.alternate_email_rounded, size: 17, color: p.accent),
+                      const SizedBox(width: 4),
+                    ],
+                    if (c.unread > 0)
+                      CountBadge(c.unread)
+                    else if (requests > 0)
+                      Icon(Icons.person_add_alt_1_rounded, size: 18, color: p.accent)
+                    else
+                      const SizedBox(height: 22),
+                  ],
+                ),
               ],
             ),
           ],
@@ -546,12 +622,13 @@ class _ChatsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chats = ChatHub.instance.directChats;
+    // المحادثات الخاصة والجروبات اللي إنت فيها مع بعض (المتثبتة فوق، وبعدها الأحدث)
+    final chats = ChatHub.instance.conversations;
     if (chats.isEmpty) {
       return EmptyState(
         icon: Icons.chat_bubble_outline_rounded,
         title: 'لسه مفيش محادثات',
-        message: 'اختار حد من القريبين وابدأ الكلام. التشفير بيتعمل تلقائي من غير كلمة سر.',
+        message: 'اختار حد أو جروب من القريبين وابدأ الكلام. التشفير بيتعمل تلقائي من غير كلمة سر.',
         action: SizedBox(
           width: 230,
           child: PrimaryButton(label: 'ابدأ محادثة جديدة', icon: Icons.edit_rounded, height: 50, onPressed: onNew),
@@ -573,7 +650,6 @@ class _GroupsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = context.palette;
     final hub = ChatHub.instance;
     final mine = hub.groupChats;
     final nearby = hub.nearbyGroups;
@@ -598,9 +674,25 @@ class _GroupsTab extends StatelessWidget {
         if (nearby.isNotEmpty) ...[
           const Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: SectionLabel('جروبات حواليك')),
           for (final g in nearby)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-              child: AppCard(
+            Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 10), child: _NearbyGroupCard(group: g)),
+        ],
+      ],
+    );
+  }
+}
+
+/// جروب ظاهر حواليك: اضغط عشان تدخل / تطلب.
+class _NearbyGroupCard extends StatelessWidget {
+  const _NearbyGroupCard({required this.group});
+
+  final NearbyGroup group;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.palette;
+    final hub = ChatHub.instance;
+    final g = group;
+    return AppCard(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                 onTap: () => joinGroupFlow(context, g.ad),
                 child: Row(
@@ -662,11 +754,7 @@ class _GroupsTab extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            ),
-        ],
-      ],
-    );
+              );
   }
 }
 
@@ -709,6 +797,7 @@ class _PeopleTabState extends State<_PeopleTab> {
     final p = context.palette;
     final hub = ChatHub.instance;
     final people = hub.people;
+    final groups = hub.nearbyGroups;
     final link = hub.link;
     final lan = link is LanLink
         ? link
@@ -736,7 +825,7 @@ class _PeopleTabState extends State<_PeopleTab> {
             style: TextStyle(color: p.textMuted, height: 1.7),
           ),
         ] else ...[
-          SectionLabel('اضغط على أي حد عشان تكلمه (${people.length})'),
+          SectionLabel('أشخاص — اضغط على أي حد عشان تكلمه (${people.length})'),
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -764,6 +853,11 @@ class _PeopleTabState extends State<_PeopleTab> {
               ],
             ),
           ),
+        ],
+        if (groups.isNotEmpty) ...[
+          SectionLabel('جروبات حواليك (${groups.length})'),
+          for (final g in groups)
+            Padding(padding: const EdgeInsets.only(bottom: 10), child: _NearbyGroupCard(group: g)),
         ],
         if (lan != null && lan.hasNetwork) ...[
           const SizedBox(height: 14),

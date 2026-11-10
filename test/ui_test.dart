@@ -16,6 +16,7 @@ import 'package:wasl/features/groups/group_ui.dart';
 import 'package:wasl/features/home/home_screen.dart';
 import 'package:wasl/features/home/transport_screen.dart';
 import 'package:wasl/features/hub/chat_hub.dart';
+import 'package:wasl/widgets/ui.dart';
 import 'package:wasl/features/onboarding/profile_editor.dart';
 import 'package:wasl/features/settings/settings_screen.dart';
 import 'package:wasl/mesh/mesh_router.dart';
@@ -105,21 +106,46 @@ void main() {
     expect(find.text('لسه مفيش محادثات'), findsOneWidget);
     expect(find.text('ابدأ محادثة جديدة'), findsOneWidget);
 
+    // الصفحة بتتحرك بأنيميشن: فريم يبدأها وفريم يخلّصها
+    Future<void> settle() async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
     // القريبين
     await tester.tap(find.text('القريبين'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await settle();
     expect(find.text('بندوّر على ناس حواليك'), findsWidgets);
+
+    // السحب بالإيد بيتنقل بين الصفحات (الواجهة عربي: الصفحة الأولى على اليمين)
+    int tab() => tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+    expect(tab(), 2);
+    await tester.drag(find.byType(PageView), const Offset(-300, 0));
+    await settle();
+    expect(tab(), 1);
+    expect(find.text('مفيش جروبات حواليك'), findsOneWidget);
+    await tester.drag(find.byType(PageView), const Offset(-300, 0));
+    await settle();
+    expect(tab(), 0);
+    await tester.drag(find.byType(PageView), const Offset(300, 0));
+    await settle();
+    expect(tab(), 1);
 
     // الجروبات ← جروب جديد بكلمة سر
     await tester.tap(find.text('الجروبات'));
-    await tester.pump(const Duration(milliseconds: 300));
+    await settle();
     expect(find.text('مفيش جروبات حواليك'), findsOneWidget);
     late GroupChat g;
     await tester.runAsync(() async {
       g = await hub.createGroup(name: 'الشلة', mode: GroupMode.password, password: 'سر1234');
     });
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('الشلة'), findsOneWidget);
+    // الجروب بيظهر في صفحة الجروبات وفي صفحة المحادثات كمان
+    expect(find.text('الشلة'), findsWidgets);
+    await tester.tap(find.text('المحادثات'));
+    await settle();
+    expect(find.text('الشلة'), findsWidgets);
+    expect(find.text('لسه مفيش محادثات'), findsNothing);
     expect(hub.groupChats.single.info.mode, GroupMode.password);
 
     // شاشة الجروب
@@ -132,13 +158,40 @@ void main() {
         sender: 'منى',
         senderId: 'aaaaaaaaaaaaaaaa',
         reply: const ReplyInfo(id: 'a', preview: 'أهلاً بيكم', toMine: true, author: 'آدم'),
-      ),
+        forwarded: true,
+        mentions: {hub.myId: 'آدم'},
+      )
+        ..mentionsMe = true
+        ..reactions['bbbbbbbbbbbbbbbb'] = '👍',
     ]);
     await tester.pumpWidget(app(ChatPage(conversation: g)));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('منوّرين'), findsOneWidget);
     expect(find.text('منى'), findsOneWidget);
     expect(find.text('الشلة'), findsOneWidget);
+    // تفاعل + رسالة محوّلة + أفاتار صاحب الرسالة
+    expect(find.text('👍'), findsOneWidget);
+    expect(find.text('محوّلة'), findsOneWidget);
+    expect(find.byType(Avatar), findsNWidgets(2));
+
+    // ضغطة طويلة: تحويل، والمدير (صاحب الجروب) يقدر يمسح رسالة غيره عند الكل
+    await tester.longPress(find.text('منوّرين'));
+    await tester.pumpAndSettle();
+    // مفيش حد متصل في الاختبار، فالتفاعل والرد مقفولين
+    expect(find.text('❤️'), findsNothing);
+    expect(find.text('تحويل'), findsOneWidget);
+    expect(find.text('حذف عند الكل (إنت مدير)'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // البحث جوه المحادثة
+    await tester.tap(find.byIcon(Icons.more_vert_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('بحث في المحادثة'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'دوّر في المحادثة'), 'منوّر');
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('1/1'), findsOneWidget);
 
     // معلومات الجروب
     await tester.pumpWidget(app(GroupInfoScreen(group: g)));
