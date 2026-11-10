@@ -1,135 +1,131 @@
-**English** | [العربية](README.ar.md)
+**العربية** | [English](README.en.md)
 
 <p align="center">
-  <img src="docs/images/banner.en.png" alt="Wasl — encrypted chat with no internet and no server" width="100%">
+  <img src="docs/images/banner.ar.png" alt="وَصْل — شات مشفّر من غير إنترنت ولا سيرفر" width="100%">
 </p>
 
 <p align="center">
   <a href="https://github.com/AdamG00D/Wasl/actions/workflows/ci.yml"><img src="https://github.com/AdamG00D/Wasl/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/AdamG00D/Wasl/releases/latest"><img src="https://img.shields.io/github/v/release/AdamG00D/Wasl?label=release" alt="Latest release"></a>
+  <a href="https://github.com/AdamG00D/Wasl/releases/latest"><img src="https://img.shields.io/github/v/release/AdamG00D/Wasl?label=release" alt="آخر إصدار"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0"></a>
   <img src="https://img.shields.io/badge/Android-7%2B-3DDC84?logo=android&logoColor=white" alt="Android 7+">
   <img src="https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter&logoColor=white" alt="Flutter">
 </p>
 
-# Wasl — وَصْل
+# وَصْل — Wasl
 
-**Wasl** ("connection" in Arabic) is a chat app for Android that works **with no internet and no server**. Phones
-nearby talk directly over **Bluetooth** or the same **Wi-Fi / hotspot**, and relay messages for each other as a
-**mesh**, so a message can reach someone well beyond your own phone's range. Private chats are end-to-end encrypted
-automatically — no accounts, no phone numbers, no passwords.
+شات لأندرويد شغال **من غير إنترنت ومن غير سيرفر**: الموبايلات اللي جنب بعض بتكلم بعض مباشرة بالبلوتوث أو على نفس
+الواي فاي / الهوت سبوت، وكل موبايل بيوصّل رسايل غيره (**Mesh**)، فرسالتك توصل لناس أبعد من مدى موبايلك.
+الشات الخاص مشفّر من طرف لطرف تلقائياً — من غير حساب ولا رقم موبايل ولا كلمة سر.
 
-Built for places where the network is down, overloaded or untrusted: protests, festivals, trips, campuses, power
-cuts. The interface is in Arabic (English is planned).
+معمول للأماكن اللي النت فيها واقع أو زحمة أو مش آمن: رحلات، حفلات، جامعات، تجمعات، انقطاع الكهربا. الواجهة
+عربي (والإنجليزي جاي).
 
-## Screenshots
+## صور من التطبيق
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/screenshots/chats.png" width="200" alt="Chats"><br><sub>Chats &amp; groups</sub></td>
-    <td align="center"><img src="docs/images/screenshots/group-chat.png" width="200" alt="Group chat"><br><sub>Group: reactions, replies, mentions</sub></td>
-    <td align="center"><img src="docs/images/screenshots/direct-chat-dark.png" width="200" alt="Private chat"><br><sub>Private chat (dark theme)</sub></td>
-    <td align="center"><img src="docs/images/screenshots/nearby.png" width="200" alt="Nearby"><br><sub>Nearby people &amp; groups</sub></td>
+    <td align="center"><img src="docs/images/screenshots/chats.png" width="200" alt="المحادثات"><br><sub>المحادثات والجروبات</sub></td>
+    <td align="center"><img src="docs/images/screenshots/group-chat.png" width="200" alt="جروب"><br><sub>جروب: تفاعلات وردود ومنشن</sub></td>
+    <td align="center"><img src="docs/images/screenshots/direct-chat-dark.png" width="200" alt="شات خاص"><br><sub>شات خاص (الوضع الغامق)</sub></td>
+    <td align="center"><img src="docs/images/screenshots/nearby.png" width="200" alt="القريبين"><br><sub>الناس والجروبات القريبة</sub></td>
   </tr>
 </table>
 
 <details>
-<summary>More screenshots</summary>
+<summary>صور أكتر</summary>
 <br>
 <table>
   <tr>
-    <td align="center"><img src="docs/images/screenshots/transport.png" width="200" alt="Choose Bluetooth, Wi-Fi or both"><br><sub>Bluetooth, Wi-Fi or both</sub></td>
-    <td align="center"><img src="docs/images/screenshots/group-info.png" width="200" alt="Group info"><br><sub>Group owner &amp; admins</sub></td>
-    <td align="center"><img src="docs/images/screenshots/member-sheet-dark.png" width="200" alt="Member actions"><br><sub>Tap a member</sub></td>
-    <td align="center"><img src="docs/images/screenshots/profile.png" width="200" alt="Profile"><br><sub>Profile &amp; cartoon avatars</sub></td>
+    <td align="center"><img src="docs/images/screenshots/transport.png" width="200" alt="اختيار طريقة الاتصال"><br><sub>بلوتوث أو واي فاي أو الاتنين</sub></td>
+    <td align="center"><img src="docs/images/screenshots/group-info.png" width="200" alt="معلومات الجروب"><br><sub>صاحب الجروب والمديرين</sub></td>
+    <td align="center"><img src="docs/images/screenshots/member-sheet-dark.png" width="200" alt="الضغط على عضو"><br><sub>الضغط على عضو</sub></td>
+    <td align="center"><img src="docs/images/screenshots/profile.png" width="200" alt="البروفايل"><br><sub>البروفايل والأفاتارات الكرتونية</sub></td>
   </tr>
 </table>
 </details>
 
-## Features
+## المميزات
 
-- **No internet, no server, no account** — a name and an avatar; your identity is a key generated on your phone.
-- **Three ways to connect** — Bluetooth (no network at all), Wi-Fi / hotspot (faster, with video and calls), or
-  **both at once**, which turns your phone into a bridge between a Wi-Fi network and people on Bluetooth.
-- **Mesh** — messages hop through other phones (up to 6 hops); relays can't read private chats.
-- **Private chats** — end-to-end encrypted automatically, with an optional safety code to verify each other.
-- **Groups** — open, password-protected or join-by-request, with an owner and admins who can remove members and
-  delete messages.
-- **Everything you'd expect from a chat app** — photos, files, voice notes, replies, edits, delete for everyone,
-  emoji reactions, @mentions, forwarding, search, read receipts, "typing…", voice and video calls over Wi-Fi.
-- **Notifications** like a regular chat app, with quick reply; per-chat mute and pin.
-- **Private by default** — chats are kept in memory only unless you choose to save them; saved chats are encrypted
-  with a key held in Android Keystore. Optional PIN / fingerprint lock. No analytics, no ads, no network calls.
+- **من غير إنترنت ولا سيرفر ولا حساب**: اسم وأفاتار بس، وهويتك مفتاح بيتولّد على موبايلك.
+- **تلات طرق للاتصال**: بلوتوث (من غير أي شبكة)، واي فاي / هوت سبوت (أسرع، وفيه فيديو ومكالمات)، أو
+  **الاتنين مع بعض** فموبايلك يبقى كوبري بين شبكة الواي فاي والناس اللي على البلوتوث.
+- **Mesh**: الرسايل بتعدّي على موبايلات تانية (لحد 6 قفزات)، واللي في النص ميقدروش يقروا الشات الخاص.
+- **شات خاص** مشفّر من طرف لطرف تلقائياً، ورمز أمان اختياري تتأكدوا بيه من بعض.
+- **جروبات**: عام، بكلمة سر، أو بطلب انضمام — بصاحب ومديرين يقدروا يشيلوا أعضاء ويمسحوا رسايل.
+- **كل اللي متعود عليه في تطبيقات الشات**: صور، ملفات، فويس، رد، تعديل، حذف عند الكل، تفاعل بالإيموجي، منشن،
+  تحويل، بحث، علامات القراءة، "بيكتب..."، ومكالمات صوت وفيديو على الواي فاي.
+- **إشعارات** زي أي تطبيق شات، ومنها رد سريع، وكتم وتثبيت لكل محادثة.
+- **الخصوصية هي الأساس**: المحادثات في الذاكرة بس إلا لو اخترت تحفظها، والمحفوظ متشفّر بمفتاح جوه Android
+  Keystore. قفل برقم سري أو بصمة اختياري. مفيش تحليلات ولا إعلانات ولا أي اتصال بالإنترنت.
 
-## Download
+## التحميل
 
-Get the APK from the [latest release](https://github.com/AdamG00D/Wasl/releases/latest) (Android 7.0+):
+نزّل الـ APK من [آخر إصدار](https://github.com/AdamG00D/Wasl/releases/latest) (أندرويد 7 أو أحدث):
 
-| File | For |
+| الملف | لمين |
 |---|---|
-| `Wasl-<version>-arm64-v8a.apk` | **Most phones** (2017 and newer) — pick this if unsure |
-| `Wasl-<version>-armeabi-v7a.apk` | Older or low-end phones |
-| `Wasl-<version>-x86_64.apk` | Emulators and Chromebooks |
-| `Wasl-<version>-universal.apk` | Any device (larger download) |
+| `Wasl-<الإصدار>-arm64-v8a.apk` | **أغلب الموبايلات** (من 2017 وطالع) — لو مش متأكد اختار ده |
+| `Wasl-<الإصدار>-armeabi-v7a.apk` | الموبايلات القديمة أو الرخيصة |
+| `Wasl-<الإصدار>-x86_64.apk` | المحاكي وأجهزة Chromebook |
+| `Wasl-<الإصدار>-universal.apk` | أي موبايل (حجمه أكبر) |
 
-All variants share one version code, so you can switch between them when updating. Check downloads with
-`sha256sum -c SHA256SUMS.txt`.
+كل النسخ بنفس رقم الإصدار، فتقدر تحدّث من أي واحدة لأي واحدة. وتتأكد من الملفات بـ `sha256sum -c SHA256SUMS.txt`.
 
-> Wasl is not on F-Droid: Bluetooth mode uses Google Nearby Connections, which is part of Google Play Services.
+> وصل مش موجود على F-Droid: وضع البلوتوث معتمد على Google Nearby Connections، ودي جزء من خدمات Google Play.
 
-## How it works
+## بيشتغل إزاي
 
 ```
- [phone A] ──Wi-Fi── [phone B] ──Bluetooth── [phone C] ──Bluetooth── [phone D]
-     └──────────── end-to-end encrypted: B and C relay but can't read ────────────┘
+ [موبايل A] ──واي فاي── [موبايل B] ──بلوتوث── [موبايل C] ──بلوتوث── [موبايل D]
+     └────────── مشفّر من طرف لطرف: B و C بيوصّلوا بس ومبيقروش ──────────┘
 ```
 
-Each phone announces itself to its neighbours, learns who is reachable through whom, and forwards frames it
-receives. Private chats run an authenticated X25519 handshake on top and encrypt every message with AES-256-GCM.
-Groups share a group key; admin commands are authenticated individually. The full protocol is in
-[docs/PROTOCOL.md](docs/PROTOCOL.md), and what is and isn't protected is in [SECURITY.md](SECURITY.md).
+كل موبايل بيعرّف نفسه للي جنبه، وبيعرف مين واصل له عن طريق مين، وبيعدّي الرسايل. الشات الخاص فوق ده كله
+بمصافحة X25519 موثّقة، وكل رسالة متشفّرة AES-256-GCM. الجروبات بمفتاح مشترك، وأوامر الإدارة موثّقة لكل عضو
+لوحده. البروتوكول كامل في [docs/PROTOCOL.md](docs/PROTOCOL.md)، وإيه اللي محمي وإيه اللي لأ في
+[SECURITY.ar.md](SECURITY.ar.md).
 
-## Build from source
+## التشغيل من الكود
 
-Requires [Flutter](https://docs.flutter.dev/get-started/install) (stable, Dart ≥ 3.9) and JDK 17+.
+محتاج [Flutter](https://docs.flutter.dev/get-started/install) (stable، Dart ≥ 3.9) و JDK 17 أو أحدث.
 
 ```bash
 flutter pub get
-flutter analyze        # must report: No issues found!
-flutter test           # mesh, encryption, groups, admin, storage, UI — no devices needed
-flutter run            # on an Android phone (Bluetooth doesn't work in the emulator)
+flutter analyze        # لازم: No issues found!
+flutter test           # الشبكة، التشفير، الجروبات، الإدارة، التخزين، الواجهة — من غير موبايلات
+flutter run            # على موبايل أندرويد (البلوتوث مبيشتغلش على المحاكي)
 ```
 
-Without the release signing key the project still builds, signed with the debug key. Official releases are built
-with `./scripts/build_release.sh`. To try it for real you need two phones on the same Wi-Fi (or one sharing a
-hotspot), or two phones with Bluetooth next to each other.
+من غير مفتاح التوقيع المشروع بيتبني عادي وبيتوقّع بمفتاح الـ debug. الإصدارات الرسمية بتتبني بـ
+`./scripts/build_release.sh`. وعشان تجرّب بجد محتاج موبايلين على نفس الواي فاي (أو واحد فاتح هوت سبوت)، أو
+موبايلين بالبلوتوث جنب بعض.
 
-## Project layout
+## المشروع من جوه
 
-| Path | What's there |
+| المكان | فيه إيه |
 |---|---|
-| `lib/mesh/` | Links (Wi-Fi, Bluetooth, both) and the mesh router |
-| `lib/features/chat/core/` | Encrypted channel, chat session, file transfer |
-| `lib/features/groups/` | Groups: keys, sessions, admin commands |
-| `lib/features/hub/chat_hub.dart` | Ties it together: network, conversations, storage, notifications |
-| `lib/core/` | Crypto, profile, encrypted storage, settings, theme |
-| `android/…/kotlin/` | Notifications, background service, Keystore, native crypto, media compression |
-| `test/` | Tests on an in-memory network (no phones needed) |
+| `lib/mesh/` | وسايل الربط (واي فاي / بلوتوث / الاتنين) وموجّه الشبكة |
+| `lib/features/chat/core/` | القناة المشفّرة، الجلسة، نقل الملفات |
+| `lib/features/groups/` | الجروبات: المفاتيح، الجلسة، أوامر الإدارة |
+| `lib/features/hub/chat_hub.dart` | بيربط كل حاجة: الشبكة، المحادثات، الحفظ، الإشعارات |
+| `lib/core/` | التشفير، البروفايل، التخزين المشفّر، الإعدادات، الثيم |
+| `android/…/kotlin/` | الإشعارات، الخدمة، Keystore، التشفير السريع، الضغط |
+| `test/` | اختبارات بشبكة وهمية في الذاكرة (من غير موبايلات) |
 
-## Contributing & security
+## المساهمة والأمان
 
-- Contributions are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md).
-- Found a vulnerability? **Don't open a public issue** — see [SECURITY.md](SECURITY.md).
-- Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+- عايز تساهم؟ اقرا [CONTRIBUTING.ar.md](CONTRIBUTING.ar.md).
+- لقيت ثغرة؟ **متفتحش issue علني** — اتبع [SECURITY.ar.md](SECURITY.ar.md).
+- التزم بـ [قواعد التعامل](CODE_OF_CONDUCT.ar.md).
 
-## License
+## الترخيص
 
-Wasl is free software under the **GNU General Public License v3.0 or later** — see [LICENSE](LICENSE).
+وصل برنامج حر تحت رخصة **GNU GPL v3.0 أو أحدث** — النص الكامل في [LICENSE](LICENSE).
 
 Copyright © 2026 Adam Ghanem and Wasl contributors.
 
-Additional permission under GPLv3 section 7: you may link this program with the Google Play Services libraries
-(which include Nearby Connections) and distribute the result without those libraries becoming subject to this
-license.
+إذن إضافي (حسب البند 7 من GPLv3): مسموح تربط البرنامج ده بمكتبات Google Play Services (اللي Nearby Connections
+جزء منها) وتوزّع الناتج، من غير ما ده يخلّي المكتبات دي خاضعة للرخصة.
 
-The [IBM Plex Sans Arabic](https://github.com/IBM/plex) font is licensed under the SIL Open Font License 1.1.
+الخط [IBM Plex Sans Arabic](https://github.com/IBM/plex) تحت رخصة SIL Open Font License 1.1.

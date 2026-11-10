@@ -5,8 +5,9 @@ Nearby Connections) or **Wi-Fi / hotspot** (UDP discovery + TCP) — or both at 
 bridge between the two — with no internet and no server. Devices form a **mesh** (messages hop through other
 phones), private chats are end-to-end encrypted automatically (no passwords), and there are groups (open /
 password / join-request) with an owner and admins. Package `com.adam.wasl`. Open source, **GPL-3.0-or-later**
-(`LICENSE`); human-facing docs come in English + Arabic pairs (`X.md` / `X.ar.md`, keep both in sync):
-`README`, `CONTRIBUTING`, `SECURITY` (threat model + known limits), `CODE_OF_CONDUCT` (Contributor Covenant 2.1).
+(`LICENSE`); human-facing docs come in English + Arabic pairs, keep both in sync: `README.md` is **Arabic** (the
+main one) with `README.en.md`; `CONTRIBUTING`, `SECURITY` (threat model + known limits) and `CODE_OF_CONDUCT`
+(Contributor Covenant 2.1) are English `X.md` with Arabic `X.ar.md`.
 `docs/PROTOCOL.md` (wire protocol, English only — keep it in sync with the code). README images live in
 `docs/images/` (banners `banner.en.png` / `banner.ar.png`, screenshots in `screenshots/`). It started from the chat part of the
 owner's older app ILN (`~/Downloads/ILN_App/iln_flutter`) — chat session, file transfer, voice, calls and the Kotlin
