@@ -148,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ProfileEditor())),
                 child: Row(
                   children: [
-                    Avatar(name: me.name, color: me.color, avatarHash: me.avatarHash, size: 62),
+                    Avatar(name: me.name, color: me.color, avatarHash: me.avatarHash, cartoon: me.cartoon, size: 62),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(

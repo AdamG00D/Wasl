@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/profile/profile.dart';
 import '../core/theme/app_theme.dart';
+import 'cartoon_avatar.dart';
 
 /// أول حرف من الاسم (للأفاتار) — آمن مع الأسماء الفاضية.
 String initialOf(String name) {
@@ -18,6 +19,7 @@ class Avatar extends StatelessWidget {
     required this.name,
     required this.color,
     this.avatarHash,
+    this.cartoon,
     this.file,
     this.size = 48,
     this.online,
@@ -29,6 +31,9 @@ class Avatar extends StatelessWidget {
 
   /// هاش صورة متخزنة (بتاعتي أو بتاعة حد من الشبكة).
   final String? avatarHash;
+
+  /// رقم أفاتار كرتوني (بيظهر لو مفيش صورة).
+  final int? cartoon;
 
   /// صورة من ملف مباشرة (معاينة قبل الحفظ).
   final File? file;
@@ -61,10 +66,16 @@ class Avatar extends StatelessWidget {
       ),
       child: icon != null
           ? Icon(icon, color: Colors.white, size: size * 0.5)
-          : Text(
-              initialOf(name),
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: size * 0.42, height: 1.2),
-            ),
+          : CartoonAvatars.valid(cartoon)
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(radius),
+                  child: CustomPaint(size: Size.square(size), painter: CartoonPainter(cartoon!)),
+                )
+              : Text(
+                  initialOf(name),
+                  style:
+                      TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: size * 0.42, height: 1.2),
+                ),
     );
     if (f != null) {
       body = ClipRRect(

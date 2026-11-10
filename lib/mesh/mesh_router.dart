@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/crypto/kdf.dart';
 import '../core/profile/profile.dart';
+import '../widgets/cartoon_avatar.dart';
 import 'mesh_link.dart';
 
 /// نوع الجروب.
@@ -32,7 +33,14 @@ enum GroupMode {
 
 /// إعلان عن جروب (بيتبعت مع "أنا موجود" من كل عضو فيه).
 class GroupAd {
-  const GroupAd({required this.id, required this.name, required this.mode, required this.owner, this.check});
+  const GroupAd({
+    required this.id,
+    required this.name,
+    required this.mode,
+    required this.owner,
+    this.check,
+    this.digest,
+  });
 
   final String id;
   final String name;
@@ -44,7 +52,10 @@ class GroupAd {
   /// للجروبات بكلمة سر: قيمة نتأكد بيها إن الكلمة صح (من غير ما نكشفها).
   final String? check;
 
-  Map<String, dynamic> toWire() => {'i': id, 'n': name, 'm': mode.wire, 'o': owner, 'c': ?check};
+  /// بصمة حالة الإدارة عند العضو ده (الاسم، المديرين، اللي اتشالوا).
+  final String? digest;
+
+  Map<String, dynamic> toWire() => {'i': id, 'n': name, 'm': mode.wire, 'o': owner, 'c': ?check, 'h': ?digest};
 
   static GroupAd? fromWire(Object? raw) {
     if (raw is! Map) return null;
@@ -54,12 +65,14 @@ class GroupAd {
     final name = Profile.cleanName('${raw['n'] ?? ''}');
     if (!MeshRouter.isId(id) || !MeshRouter.isId(owner) || mode == null || name.isEmpty) return null;
     final check = raw['c'];
+    final digest = raw['h'];
     return GroupAd(
       id: id,
       name: name,
       mode: mode,
       owner: owner,
       check: check is String && check.length <= 64 ? check : null,
+      digest: digest is String && digest.length <= 16 ? digest : null,
     );
   }
 }
@@ -73,6 +86,9 @@ class MeshNode {
   String name = '';
   int color = 0;
   String? avatar;
+
+  /// رقم الأفاتار الكرتوني (لو مختار واحد).
+  int? cartoon;
   List<GroupAd> groups = const [];
   DateTime lastSeen = DateTime.now();
 
@@ -130,7 +146,7 @@ class MeshRouter extends ChangeNotifier {
   final MeshLink link;
   final String myId;
 
-  /// بيانات "أنا موجود": {n: الاسم, c: اللون, k: المفتاح العام, a: هاش الصورة, g: الجروبات}.
+  /// بيانات "أنا موجود": {n: الاسم, c: اللون, k: المفتاح العام, a: هاش الصورة, e: أفاتار كرتوني, g: الجروبات}.
   final Map<String, dynamic> Function() describe;
 
   final Duration presenceEvery;
@@ -494,6 +510,7 @@ class MeshRouter extends ChangeNotifier {
     final name = Profile.cleanName('${m['n'] ?? ''}');
     final color = (m['c'] as num?)?.toInt() ?? 0;
     final avatar = m['a'] is String && RegExp(r'^[0-9a-f]{12}$').hasMatch(m['a'] as String) ? m['a'] as String : null;
+    final cartoon = CartoonAvatars.clean(m['e']);
     final groups = <GroupAd>[
       for (final g in (m['g'] as List? ?? const []).take(16))
         if (GroupAd.fromWire(g) case final GroupAd ad) ad,
@@ -504,12 +521,14 @@ class MeshRouter extends ChangeNotifier {
         node.name != name ||
         node.color != color ||
         node.avatar != avatar ||
+        node.cartoon != cartoon ||
         node.hops != newHops ||
         !_sameGroups(node.groups, groups);
     node
       ..name = name.isEmpty ? 'مجهول' : name
       ..color = color
       ..avatar = avatar
+      ..cartoon = cartoon
       ..groups = groups
       ..hops = newHops
       ..lastSeen = DateTime.now()
@@ -527,7 +546,7 @@ class MeshRouter extends ChangeNotifier {
   static bool _sameGroups(List<GroupAd> a, List<GroupAd> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id || a[i].name != b[i].name || a[i].mode != b[i].mode || a[i].check != b[i].check) {
+      if (a[i].id != b[i].id || a[i].name != b[i].name || a[i].mode != b[i].mode || a[i].check != b[i].check || a[i].digest != b[i].digest) {
         return false;
       }
     }

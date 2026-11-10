@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../widgets/cartoon_avatar.dart';
 import '../crypto/kdf.dart';
 import '../storage/vault.dart';
 
@@ -20,10 +21,14 @@ class Profile {
     required this.id,
     required this.seed,
     this.avatarHash,
+    this.cartoon,
   });
 
   String name;
   int color;
+
+  /// رقم الأفاتار الكرتوني (null = من غير). الصورة لو موجودة هي اللي بتظهر.
+  int? cartoon;
 
   /// هاش صورة البروفايل (null = من غير صورة).
   String? avatarHash;
@@ -41,7 +46,13 @@ class Profile {
     return n.length > 24 ? n.substring(0, 24) : n;
   }
 
-  static Future<Profile> fromSeed(Uint8List seed, {required String name, required int color, String? avatarHash}) async {
+  static Future<Profile> fromSeed(
+    Uint8List seed, {
+    required String name,
+    required int color,
+    String? avatarHash,
+    int? cartoon,
+  }) async {
     final kp = await X25519().newKeyPairFromSeed(seed);
     final pub = Uint8List.fromList((await kp.extractPublicKey()).bytes);
     return Profile(
@@ -52,6 +63,7 @@ class Profile {
       id: await idOf(pub),
       seed: seed,
       avatarHash: avatarHash,
+      cartoon: cartoon,
     );
   }
 }
@@ -73,6 +85,7 @@ class ProfileStore extends ChangeNotifier {
         name: Profile.cleanName('${j['name']}'),
         color: (j['color'] as num?)?.toInt() ?? 0,
         avatarHash: j['avatar'] as String?,
+        cartoon: CartoonAvatars.clean(j['cartoon']),
       );
     } catch (_) {}
   }
@@ -84,13 +97,19 @@ class ProfileStore extends ChangeNotifier {
       'name': p.name,
       'color': p.color,
       'avatar': p.avatarHash,
+      'cartoon': p.cartoon,
     });
     notifyListeners();
   }
 
   /// أول مرة: بروفايل جديد بهوية جديدة.
-  Future<Profile> create({required String name, required int color, String? avatarFile}) async {
-    final p = await Profile.fromSeed(Kdf.randomBytes(32), name: Profile.cleanName(name), color: color);
+  Future<Profile> create({required String name, required int color, String? avatarFile, int? cartoon}) async {
+    final p = await Profile.fromSeed(
+      Kdf.randomBytes(32),
+      name: Profile.cleanName(name),
+      color: color,
+      cartoon: CartoonAvatars.valid(cartoon) ? cartoon : null,
+    );
     current = p;
     if (avatarFile != null) p.avatarHash = await Avatars.import(avatarFile);
     await _save();
@@ -98,12 +117,14 @@ class ProfileStore extends ChangeNotifier {
   }
 
   /// [avatarFile]: مسار صورة جديدة، أو '' عشان تشيل الصورة، أو null من غير تغيير.
-  Future<void> update({String? name, int? color, String? avatarFile}) async {
+  /// [cartoon]: رقم أفاتار كرتوني، أو 0 عشان تشيله، أو null من غير تغيير.
+  Future<void> update({String? name, int? color, String? avatarFile, int? cartoon}) async {
     final p = current;
     if (p == null) return;
     if (name != null && Profile.cleanName(name).isNotEmpty) p.name = Profile.cleanName(name);
     if (color != null) p.color = color;
     if (avatarFile != null) p.avatarHash = avatarFile.isEmpty ? null : await Avatars.import(avatarFile);
+    if (cartoon != null) p.cartoon = CartoonAvatars.valid(cartoon) ? cartoon : null;
     await _save();
   }
 }

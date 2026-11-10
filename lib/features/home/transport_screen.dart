@@ -33,7 +33,7 @@ class TransportScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Avatar(name: me.name, color: me.color, avatarHash: me.avatarHash, size: 50),
+                    Avatar(name: me.name, color: me.color, avatarHash: me.avatarHash, cartoon: me.cartoon, size: 50),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

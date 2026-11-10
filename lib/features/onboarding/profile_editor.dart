@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/platform/system_bridge.dart';
 import '../../core/profile/profile.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/cartoon_avatar.dart';
 import '../../widgets/feedback.dart';
 import '../../widgets/focus_guard.dart';
 import '../../widgets/ui.dart';
@@ -30,6 +31,9 @@ class _ProfileEditorState extends State<ProfileEditor> {
   File? _picked;
   bool _removed = false;
   bool _busy = false;
+
+  /// الأفاتار الكرتوني المختار (null = من غير).
+  late int? _cartoon = _existing?.cartoon;
 
   bool get _isNew => _existing == null;
 
@@ -63,6 +67,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
       setState(() {
         _picked = out;
         _removed = false;
+        _cartoon = null; // الصورة بتاخد مكان الأفاتار الكرتوني
       });
     } catch (_) {
       if (mounted) showToast(context, 'معرفناش نفتح المعرض', error: true);
@@ -80,12 +85,13 @@ class _ProfileEditorState extends State<ProfileEditor> {
     final store = ProfileStore.instance;
     try {
       if (_isNew) {
-        await store.create(name: name, color: _color, avatarFile: _picked?.path);
+        await store.create(name: name, color: _color, avatarFile: _picked?.path, cartoon: _cartoon);
       } else {
         await store.update(
           name: name,
           color: _color,
           avatarFile: _picked?.path ?? (_removed ? '' : null),
+          cartoon: _cartoon ?? 0,
         );
       }
     } catch (_) {
@@ -152,6 +158,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
                         size: 116,
                         file: _picked,
                         avatarHash: _removed || _picked != null ? null : _existing?.avatarHash,
+                        cartoon: _cartoon,
                       ),
                     ),
                     PositionedDirectional(
@@ -218,6 +225,38 @@ class _ProfileEditorState extends State<ProfileEditor> {
                         border: Border.all(color: _color == i ? p.text : Colors.transparent, width: 2.5),
                       ),
                       child: _color == i ? const Icon(Icons.check_rounded, color: Colors.white, size: 20) : null,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'أو اختار أفاتار كرتوني',
+              style: TextStyle(color: p.textMuted, fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (var i = 1; i <= CartoonAvatars.count; i++)
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      // ضغطة تانية على نفس الأفاتار بتشيله
+                      _cartoon = _cartoon == i ? null : i;
+                      if (_cartoon != null) {
+                        _picked = null;
+                        _removed = true;
+                      }
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(21),
+                        border: Border.all(color: _cartoon == i ? p.accent : Colors.transparent, width: 2.5),
+                      ),
+                      child: Avatar(name: '', color: _color, cartoon: i, size: 50),
                     ),
                   ),
               ],

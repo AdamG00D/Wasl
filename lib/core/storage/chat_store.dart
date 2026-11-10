@@ -12,6 +12,7 @@ class StoredChat {
     required this.name,
     this.color = 0,
     this.avatar,
+    this.cartoon,
     this.publicKey,
     this.saveOverride,
     this.unread = 0,
@@ -24,6 +25,7 @@ class StoredChat {
   String name;
   int color;
   String? avatar;
+  int? cartoon;
 
   /// مفتاح هوية الشخص (Base64) — للمحادثات الخاصة.
   String? publicKey;
@@ -40,6 +42,7 @@ class StoredChat {
         'name': name,
         'color': color,
         'avatar': ?avatar,
+        'cartoon': ?cartoon,
         'pk': ?publicKey,
         'save': ?saveOverride,
         'unread': unread,
@@ -56,6 +59,7 @@ class StoredChat {
         name: '${raw['name'] ?? ''}',
         color: (raw['color'] as num?)?.toInt() ?? 0,
         avatar: raw['avatar'] as String?,
+        cartoon: (raw['cartoon'] as num?)?.toInt(),
         publicKey: raw['pk'] as String?,
         saveOverride: raw['save'] as bool?,
         unread: (raw['unread'] as num?)?.toInt() ?? 0,
