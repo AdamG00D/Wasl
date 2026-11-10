@@ -7,6 +7,9 @@ import android.content.Intent
 import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -20,6 +23,35 @@ class MainActivity : FlutterActivity() {
 
     private var multicastLock: WifiManager.MulticastLock? = null
 
+    /** محادثة المستخدم فتح التطبيق من إشعارها ولسه Flutter مخدهاش. */
+    private var pendingChat: String? = null
+
+    companion object {
+        private var system: MethodChannel? = null
+
+        /** حدث من الإشعارات لـ Flutter (لو التطبيق شغال). */
+        fun send(method: String, args: Map<String, Any?>) {
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    system?.invokeMethod(method, args)
+                } catch (ignored: Exception) {
+                }
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        pendingChat = intent?.getStringExtra(Notifications.EXTRA_CHAT)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val chat = intent.getStringExtra(Notifications.EXTRA_CHAT) ?: return
+        pendingChat = chat
+        send("openChat", mapOf("chat" to chat))
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
@@ -27,7 +59,9 @@ class MainActivity : FlutterActivity() {
         VoiceRecorder.register(applicationContext, messenger)
         VideoCompressor.register(applicationContext, messenger)
 
-        MethodChannel(messenger, "wasl/system").setMethodCallHandler { call, result ->
+        val channel = MethodChannel(messenger, "wasl/system")
+        system = channel
+        channel.setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
                     "sdkInt" -> result.success(Build.VERSION.SDK_INT)
@@ -88,6 +122,27 @@ class MainActivity : FlutterActivity() {
                     "notify" -> {
                         Notifications.show(this, call.argument<String>("kind") ?: "message")
                         result.success(null)
+                    }
+                    "notifyMessage" -> {
+                        Notifications.showMessage(
+                            this,
+                            chat = call.argument<String>("chat") ?: "",
+                            title = call.argument<String>("title") ?: "Wasl",
+                            sender = call.argument<String>("sender"),
+                            text = call.argument<String>("text") ?: "",
+                            group = call.argument<Boolean>("group") ?: false,
+                            avatar = call.argument<ByteArray>("avatar"),
+                        )
+                        result.success(null)
+                    }
+                    "cancelNotification" -> {
+                        Notifications.cancel(this, call.argument<String>("chat") ?: "")
+                        result.success(null)
+                    }
+                    "takePendingChat" -> {
+                        val chat = pendingChat
+                        pendingChat = null
+                        result.success(chat)
                     }
                     "compressImage" -> {
                         val path = call.argument<String>("path") ?: ""
@@ -163,6 +218,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         multicastLock?.let { if (it.isHeld) it.release() }
         if (isFinishing) ChatService.stop(this)
+        system = null
         super.onDestroy()
     }
 

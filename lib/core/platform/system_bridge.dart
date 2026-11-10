@@ -72,11 +72,71 @@ class SystemBridge {
     } catch (_) {}
   }
 
-  /// إشعار من غير أي تفاصيل: 'message' = رسالة جديدة، 'request' = طلب محادثة.
+  /// إشعار من غير أي تفاصيل: 'message' = رسالة جديدة، 'request' = طلب انضمام، 'call' = مكالمة.
+  /// (ده اللي بيظهر لو قفل التطبيق متفعّل.)
   static Future<void> notify(String kind) async {
     try {
       await _channel.invokeMethod('notify', {'kind': kind});
     } catch (_) {}
+  }
+
+  /// إشعار رسالة بشكل تطبيقات الشات: اسم المحادثة وصورتها ونص الرسالة، والرسايل متجمعة
+  /// لكل محادثة، ومنه رد سريع و"تمت القراءة". [sender] اسم العضو في الجروبات.
+  static Future<void> notifyMessage({
+    required String chatId,
+    required String title,
+    required String text,
+    String? sender,
+    bool group = false,
+    Uint8List? avatar,
+  }) async {
+    try {
+      await _channel.invokeMethod('notifyMessage', {
+        'chat': chatId,
+        'title': title,
+        'text': text,
+        'sender': sender,
+        'group': group,
+        'avatar': avatar,
+      });
+    } catch (_) {}
+  }
+
+  /// يشيل إشعار محادثة معينة (اتفتحت أو اتقرت).
+  static Future<void> cancelNotification(String chatId) async {
+    try {
+      await _channel.invokeMethod('cancelNotification', {'chat': chatId});
+    } catch (_) {}
+  }
+
+  /// اللي المستخدم عمله من الإشعار: فتح محادثة، رد سريع، أو "تمت القراءة".
+  static void listenNotifications({
+    required void Function(String chatId) onOpen,
+    required void Function(String chatId, String text) onReply,
+    required void Function(String chatId) onRead,
+  }) {
+    _channel.setMethodCallHandler((call) async {
+      final args = call.arguments;
+      final chat = args is Map ? '${args['chat'] ?? ''}' : '';
+      if (chat.isEmpty) return;
+      switch (call.method) {
+        case 'openChat':
+          onOpen(chat);
+        case 'notifReply':
+          onReply(chat, '${(args as Map)['text'] ?? ''}');
+        case 'notifRead':
+          onRead(chat);
+      }
+    });
+  }
+
+  /// المحادثة اللي التطبيق اتفتح من إشعارها (لو فيه) — بتتاخد مرة واحدة.
+  static Future<String?> takePendingChat() async {
+    try {
+      return await _channel.invokeMethod<String>('takePendingChat');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// يودّي التطبيق للخلفية من غير ما يقفله (زي زرار الهوم).

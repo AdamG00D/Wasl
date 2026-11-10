@@ -83,6 +83,11 @@
             android:exported="false"
             android:grantUriPermissions="true" />
 
+        <!-- أزرار إشعار الرسالة (رد سريع / تمت القراءة) — من جوه التطبيق بس -->
+        <receiver
+            android:name=".NotificationActionReceiver"
+            android:exported="false" />
+
         <service
             android:name=".ChatService"
             android:exported="false"
