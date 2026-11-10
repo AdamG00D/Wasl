@@ -7,12 +7,23 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../widgets/feedback.dart';
 import '../../../widgets/focus_guard.dart';
+import '../../../widgets/ui.dart';
 import '../core/chat_link.dart';
 import '../core/chat_session.dart';
 import '../voice/voice.dart';
 import 'media_widgets.dart';
 
 enum _RecState { idle, holding, locked }
+
+/// عضو ممكن يتعمله منشن في الجروب.
+class MentionCandidate {
+  const MentionCandidate({required this.id, required this.name, required this.color, this.avatar, this.cartoon});
+  final String id;
+  final String name;
+  final int color;
+  final String? avatar;
+  final int? cartoon;
+}
 
 /// خانة الكتابة زي الواتساب:
 /// [إيموجي | النص | 📎 | 📷]  (🎤 / ➤)
@@ -26,7 +37,11 @@ class ChatInputBar extends StatefulWidget {
     this.reply,
     this.replyTitle,
     this.onCancelReply,
+    this.mentionCandidates,
   });
+
+  /// في الجروبات: الأعضاء اللي ينفع يتعملهم منشن (اكتب @ عشان يظهروا).
+  final List<MentionCandidate> Function()? mentionCandidates;
 
   final ChatLink link;
   final bool enabled;
@@ -39,15 +54,21 @@ class ChatInputBar extends StatefulWidget {
   final VoidCallback? onCancelReply;
 
   @override
-  State<ChatInputBar> createState() => _ChatInputBarState();
+  State<ChatInputBar> createState() => ChatInputBarState();
 }
 
-class _ChatInputBarState extends State<ChatInputBar> {
+class ChatInputBarState extends State<ChatInputBar> {
   final _ctrl = TextEditingController();
   final _focus = FocusNode();
   bool _hasText = false;
   bool _emoji = false;
   double _keyboardHeight = 280;
+
+  // ---- المنشن ----
+  /// اللي اتعملهم منشن في الرسالة اللي بتتكتب: المعرّف ← الاسم.
+  final Map<String, String> _mentions = {};
+  List<MentionCandidate> _suggestions = const [];
+  int _mentionStart = -1;
 
   // ---- التسجيل ----
   _RecState _rec = _RecState.idle;
@@ -69,6 +90,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
       final has = _ctrl.text.trim().isNotEmpty;
       if (has) _session.userTyping();
       if (has != _hasText) setState(() => _hasText = has);
+      _updateSuggestions();
     });
     _focus.addListener(() {
       if (_focus.hasFocus && _emoji) setState(() => _emoji = false);
@@ -87,9 +109,62 @@ class _ChatInputBarState extends State<ChatInputBar> {
   void _send() {
     final t = _ctrl.text.trim();
     if (t.isEmpty || !widget.enabled) return;
-    _session.send(t, reply: widget.reply);
+    _session.send(t, reply: widget.reply, mentions: _mentions.isEmpty ? null : Map.of(_mentions));
+    _mentions.clear();
     _ctrl.clear();
     widget.onCancelReply?.call();
+  }
+
+  /// بنعرض الأعضاء لما المستخدم يكتب @ وبعدها أول حروف الاسم.
+  void _updateSuggestions() {
+    final candidates = widget.mentionCandidates;
+    if (candidates == null) return;
+    final text = _ctrl.text;
+    final cursor = _ctrl.selection.baseOffset;
+    var list = const <MentionCandidate>[];
+    var start = -1;
+    if (cursor > 0 && cursor <= text.length) {
+      final at = text.lastIndexOf('@', cursor - 1);
+      if (at >= 0 && (at == 0 || text[at - 1].trim().isEmpty)) {
+        final query = text.substring(at + 1, cursor);
+        if (!query.contains('\n') && query.length <= 24) {
+          list = candidates().where((c) => c.name.contains(query)).take(6).toList();
+          start = at;
+        }
+      }
+    }
+    if (list.isEmpty && _suggestions.isEmpty) return;
+    setState(() {
+      _suggestions = list;
+      _mentionStart = list.isEmpty ? -1 : start;
+    });
+  }
+
+  void _pickMention(MentionCandidate c) {
+    final text = _ctrl.text;
+    final cursor = _ctrl.selection.baseOffset.clamp(0, text.length);
+    final start = _mentionStart.clamp(0, cursor);
+    final insert = '@${c.name} ';
+    _mentions[c.id] = c.name;
+    _ctrl.value = TextEditingValue(
+      text: text.replaceRange(start, cursor, insert),
+      selection: TextSelection.collapsed(offset: start + insert.length),
+    );
+  }
+
+  /// منشن من برا خانة الكتابة (الضغط على عضو في الشات).
+  void insertMention(String id, String name) {
+    if (!widget.enabled) return;
+    final text = _ctrl.text;
+    final cursor = _ctrl.selection.baseOffset < 0 ? text.length : _ctrl.selection.baseOffset.clamp(0, text.length);
+    final space = cursor > 0 && text[cursor - 1].trim().isNotEmpty ? ' ' : '';
+    final insert = '$space@$name ';
+    _mentions[id] = name;
+    _ctrl.value = TextEditingValue(
+      text: text.replaceRange(cursor, cursor, insert),
+      selection: TextSelection.collapsed(offset: cursor + insert.length),
+    );
+    _focus.requestFocus();
   }
 
   void _toggleEmoji() {
@@ -259,6 +334,44 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (_suggestions.isNotEmpty && !recording)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (final c in _suggestions)
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: () => _pickMention(c),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                        child: Row(
+                                          children: [
+                                            Avatar(
+                                              name: c.name,
+                                              color: c.color,
+                                              avatarHash: c.avatar,
+                                              cartoon: c.cartoon,
+                                              size: 30,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                c.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  Divider(height: 8, color: p.border),
+                                ],
+                              ),
+                            ),
                           if (widget.reply != null && !recording)
                             _ReplyPreview(
                               title: widget.replyTitle ?? '',

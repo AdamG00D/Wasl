@@ -72,6 +72,23 @@ class StoredChat {
   }
 }
 
+/// اختيارات المستخدم لمحادثة: تثبيت فوق وكتم الإشعارات.
+class ChatPrefs {
+  ChatPrefs({this.pinned = false, this.mutedUntil = 0});
+
+  bool pinned;
+
+  /// 0 = مش مكتومة • -1 = مكتومة دايماً • غير كده = لحد الوقت ده (ملي ثانية).
+  int mutedUntil;
+
+  bool get isDefault => !pinned && mutedUntil == 0;
+
+  Map<String, dynamic> toJson() => {if (pinned) 'pin': true, if (mutedUntil != 0) 'mute': mutedUntil};
+
+  static ChatPrefs fromJson(Map<dynamic, dynamic> raw) =>
+      ChatPrefs(pinned: raw['pin'] == true, mutedUntil: (raw['mute'] as num?)?.toInt() ?? 0);
+}
+
 /// المحادثات المحفوظة على الجهاز (مشفّرة) + الجروبات اللي أنا فيها + المحظورين.
 ///
 /// المحادثة بتتكتب هنا بس لو المستخدم مفعّل الحفظ (من الإعدادات أو للمحادثة نفسها).
@@ -82,10 +99,14 @@ class ChatStore {
   static const _indexFile = 'chats/index.bin';
   static const _groupsFile = 'groups.bin';
   static const _blockedFile = 'blocked.bin';
+  static const _prefsFile = 'chat_prefs.bin';
 
   final Map<String, StoredChat> index = {};
   final Map<String, GroupInfo> groups = {};
   final Set<String> blocked = {};
+
+  /// تثبيت / كتم لكل محادثة (اللي ليها اختيار بس).
+  final Map<String, ChatPrefs> prefs = {};
   bool _loaded = false;
   Future<void> _writes = Future.value();
 
@@ -110,6 +131,14 @@ class ChatStore {
     }
     final bl = await _vault.readJson(_blockedFile);
     if (bl is List) blocked.addAll(bl.whereType<String>());
+    final pr = await _vault.readJson(_prefsFile);
+    if (pr is Map) {
+      for (final e in pr.entries) {
+        if (e.key is String && _safeId(e.key as String) && e.value is Map) {
+          prefs[e.key as String] = ChatPrefs.fromJson(e.value as Map);
+        }
+      }
+    }
   }
 
   /// للاختبارات.
@@ -117,6 +146,7 @@ class ChatStore {
     index.clear();
     groups.clear();
     blocked.clear();
+    prefs.clear();
     _loaded = false;
   }
 
@@ -134,6 +164,11 @@ class ChatStore {
       _queue(() => _vault.writeJson(_groupsFile, [for (final g in groups.values) g.toJson()]));
 
   Future<void> saveBlocked() => _queue(() => _vault.writeJson(_blockedFile, blocked.toList()));
+
+  Future<void> savePrefs() {
+    prefs.removeWhere((_, p) => p.isDefault);
+    return _queue(() => _vault.writeJson(_prefsFile, {for (final e in prefs.entries) e.key: e.value.toJson()}));
+  }
 
   static bool _safeId(String id) => RegExp(r'^[0-9a-f]{16}$').hasMatch(id);
 

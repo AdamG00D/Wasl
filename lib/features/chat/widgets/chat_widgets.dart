@@ -7,12 +7,21 @@ import '../core/chat_errors.dart';
 import '../core/chat_session.dart';
 import 'media_widgets.dart';
 
+/// شكل صاحب الرسالة في الجروب (للأفاتار اللي جنب رسالته).
+class SenderLook {
+  const SenderLook({required this.color, this.avatar, this.cartoon});
+  final int color;
+  final String? avatar;
+  final int? cartoon;
+}
+
 /// قائمة الرسائل (الأحدث في الأسفل).
 class MessageList extends StatelessWidget {
   const MessageList({
     super.key,
     required this.messages,
     this.peerTyping = false,
+    this.typingLabel,
     this.onMessageActions,
     this.onCancelTransfer,
     this.onReply,
@@ -21,10 +30,17 @@ class MessageList extends StatelessWidget {
     this.highlightId,
     this.peerName = 'الطرف التاني',
     this.controller,
+    this.senderLook,
+    this.onSenderTap,
+    this.myReactionKey = ChatSession.reactMe,
+    this.onReact,
   });
 
   final List<ChatMessage> messages;
   final bool peerTyping;
+
+  /// في الجروب: "كريم بيكتب".
+  final String? typingLabel;
 
   /// ضغطة طويلة على رسالة (نسخ / تعديل / حذف / إلغاء).
   final ValueChanged<ChatMessage>? onMessageActions;
@@ -44,6 +60,20 @@ class MessageList extends StatelessWidget {
   final String peerName;
   final ScrollController? controller;
 
+  /// في الجروب: شكل صاحب الرسالة (null = من غير أفاتار جنب الرسايل).
+  final SenderLook Function(ChatMessage message)? senderLook;
+
+  /// الضغط على أفاتار أو اسم صاحب الرسالة.
+  final ValueChanged<ChatMessage>? onSenderTap;
+
+  /// مفتاح تفاعلي أنا (عشان يتميّز).
+  final String myReactionKey;
+
+  /// الضغط على تفاعل تحت الرسالة.
+  final void Function(ChatMessage message, String emoji)? onReact;
+
+  static String? _owner(ChatMessage m) => m.kind == MessageKind.theirs ? (m.senderId ?? '') : null;
+
   @override
   Widget build(BuildContext context) {
     final extra = peerTyping ? 1 : 0;
@@ -53,23 +83,30 @@ class MessageList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
       itemCount: messages.length + extra,
       itemBuilder: (_, index) {
-        if (peerTyping && index == 0) return const _TypingBubble();
-        final i = index - extra;
-        final m = messages[messages.length - 1 - i];
-        return m.kind == MessageKind.system
-            ? _SystemLine(text: m.text)
-            : _SwipeToReply(
-                key: keyFor?.call(m.id) ?? ValueKey(m.id),
-                onReply: onReply == null ? null : () => onReply!(m),
-                child: _Bubble(
-                  message: m,
-                  peerName: peerName,
-                  highlight: highlightId == m.id,
-                  onLongPress: onMessageActions == null ? null : () => onMessageActions!(m),
-                  onCancel: onCancelTransfer == null ? null : () => onCancelTransfer!(m),
-                  onQuoteTap: onQuoteTap,
-                ),
-              );
+        if (peerTyping && index == 0) return _TypingBubble(label: typingLabel);
+        final at = messages.length - 1 - (index - extra);
+        final m = messages[at];
+        if (m.kind == MessageKind.system) return _SystemLine(text: m.text);
+        // الأفاتار بيظهر جنب آخر رسالة في مجموعة رسايل ورا بعض من نفس الشخص
+        final look = m.kind == MessageKind.theirs && m.senderId != null ? senderLook?.call(m) : null;
+        final lastOfRun = at == messages.length - 1 || _owner(messages[at + 1]) != _owner(m);
+        return _SwipeToReply(
+          key: keyFor?.call(m.id) ?? ValueKey(m.id),
+          onReply: onReply == null ? null : () => onReply!(m),
+          child: _Bubble(
+            message: m,
+            peerName: peerName,
+            highlight: highlightId == m.id,
+            onLongPress: onMessageActions == null ? null : () => onMessageActions!(m),
+            onCancel: onCancelTransfer == null ? null : () => onCancelTransfer!(m),
+            onQuoteTap: onQuoteTap,
+            look: look,
+            showAvatar: lastOfRun,
+            onSenderTap: onSenderTap == null ? null : () => onSenderTap!(m),
+            myReactionKey: myReactionKey,
+            onReact: onReact == null ? null : (e) => onReact!(m, e),
+          ),
+        );
       },
     );
   }
@@ -77,7 +114,9 @@ class MessageList extends StatelessWidget {
 
 /// فقاعة "بيكتب..." بنقط متحركة.
 class _TypingBubble extends StatefulWidget {
-  const _TypingBubble();
+  const _TypingBubble({this.label});
+
+  final String? label;
 
   @override
   State<_TypingBubble> createState() => _TypingBubbleState();
@@ -118,6 +157,17 @@ class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderS
           builder: (_, _) => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.label != null) ...[
+                Flexible(
+                  child: Text(
+                    widget.label!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: p.textMuted, fontSize: 12.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               for (var i = 0; i < 3; i++)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2.5),
@@ -179,6 +229,25 @@ int senderColorOf(String id) {
 Color readTickColor(Palette p) =>
     p.onAccent.computeLuminance() > 0.5 ? const Color(0xFFB3E5FC) : const Color(0xFF0B57D0);
 
+/// نص الرسالة مع تلوين المنشن ("@الاسم").
+InlineSpan messageSpan(ChatMessage m, TextStyle base, Color mentionColor) {
+  final names = m.mentions.values.toSet().toList()..sort((a, b) => b.length.compareTo(a.length));
+  if (names.isEmpty) return TextSpan(text: m.text, style: base);
+  final pattern = RegExp(names.map((n) => RegExp.escape('@$n')).join('|'));
+  final spans = <InlineSpan>[];
+  var from = 0;
+  for (final match in pattern.allMatches(m.text)) {
+    if (match.start > from) spans.add(TextSpan(text: m.text.substring(from, match.start)));
+    spans.add(TextSpan(
+      text: match.group(0),
+      style: TextStyle(color: mentionColor, fontWeight: FontWeight.w700),
+    ));
+    from = match.end;
+  }
+  if (from < m.text.length) spans.add(TextSpan(text: m.text.substring(from)));
+  return TextSpan(style: base, children: spans);
+}
+
 class _Bubble extends StatelessWidget {
   const _Bubble({
     required this.message,
@@ -187,6 +256,11 @@ class _Bubble extends StatelessWidget {
     this.onLongPress,
     this.onCancel,
     this.onQuoteTap,
+    this.look,
+    this.showAvatar = true,
+    this.onSenderTap,
+    this.myReactionKey = ChatSession.reactMe,
+    this.onReact,
   });
 
   final ChatMessage message;
@@ -195,6 +269,11 @@ class _Bubble extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onCancel;
   final ValueChanged<String>? onQuoteTap;
+  final SenderLook? look;
+  final bool showAvatar;
+  final VoidCallback? onSenderTap;
+  final String myReactionKey;
+  final ValueChanged<String>? onReact;
 
   @override
   Widget build(BuildContext context) {
@@ -222,33 +301,37 @@ class _Bubble extends StatelessWidget {
         statusColor = mine ? fg : p.danger;
     }
 
-    final bubble = Align(
-      // رسائلي في جهة end (يسار الواجهة العربية) مثل تطبيقات المحادثة
-      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        padding: m.media != null
-            ? const EdgeInsets.fromLTRB(5, 5, 5, 6)
-            : const EdgeInsets.fromLTRB(14, 9, 14, 6),
-        decoration: BoxDecoration(
-          gradient: mine ? p.accentGradient : null,
-          color: mine ? null : p.surface,
-          border: mine ? null : Border.all(color: p.border),
-          borderRadius: BorderRadiusDirectional.only(
-            topStart: Radius.circular(mine ? 22 : 8),
-            topEnd: Radius.circular(mine ? 8 : 22),
-            bottomStart: const Radius.circular(22),
-            bottomEnd: const Radius.circular(22),
-          ),
+    final hasAvatar = look != null;
+    final box = Container(
+      constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * (hasAvatar ? 0.72 : 0.78)),
+      padding: m.media != null ? const EdgeInsets.fromLTRB(5, 5, 5, 6) : const EdgeInsets.fromLTRB(14, 9, 14, 6),
+      decoration: BoxDecoration(
+        gradient: mine ? p.accentGradient : null,
+        color: mine ? null : p.surface,
+        border: mine
+            ? null
+            : Border.all(color: m.mentionsMe ? p.accent.withValues(alpha: 0.7) : p.border, width: m.mentionsMe ? 1.4 : 1),
+        borderRadius: BorderRadiusDirectional.only(
+          topStart: Radius.circular(mine ? 22 : 8),
+          topEnd: Radius.circular(mine ? 8 : 22),
+          bottomStart: const Radius.circular(22),
+          bottomEnd: const Radius.circular(22),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!mine && m.sender != null)
-              Padding(
-                padding: EdgeInsetsDirectional.only(start: m.media != null ? 8 : 0, end: 8, top: m.media != null ? 3 : 0, bottom: 3),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!mine && m.sender != null)
+            GestureDetector(
+              onTap: onSenderTap,
+              child: Padding(
+                padding: EdgeInsetsDirectional.only(
+                  start: m.media != null ? 8 : 0,
+                  end: 8,
+                  top: m.media != null ? 3 : 0,
+                  bottom: 3,
+                ),
                 child: Text(
                   m.sender!,
                   maxLines: 1,
@@ -260,40 +343,139 @@ class _Bubble extends StatelessWidget {
                   ),
                 ),
               ),
-            if (m.reply != null)
-              _QuoteBox(
-                reply: m.reply!,
-                mine: mine,
-                peerName: peerName,
-                onTap: onQuoteTap == null ? null : () => onQuoteTap!(m.reply!.id),
-              ),
-            if (m.media != null)
-              MediaBubbleContent(message: m, onCancel: onCancel)
-            else
-              Text(
-                m.text,
-                style: TextStyle(color: fg, fontSize: 15.5, height: 1.5, fontWeight: FontWeight.w500),
-              ),
-            const SizedBox(height: 2),
+            ),
+          if (m.forwarded)
             Padding(
-              padding: m.media != null ? const EdgeInsets.symmetric(horizontal: 6) : EdgeInsets.zero,
+              padding: EdgeInsetsDirectional.only(start: m.media != null ? 8 : 0, bottom: 3),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (m.edited) ...[
-                    Text('معدّلة', style: TextStyle(color: fg.withValues(alpha: 0.6), fontSize: 10.5)),
-                    const SizedBox(width: 6),
-                  ],
-                  Text(time, style: TextStyle(color: fg.withValues(alpha: 0.65), fontSize: 11)),
-                  if (mine) ...[
-                    const SizedBox(width: 4),
-                    Icon(statusIcon, size: 15, color: statusColor),
-                  ],
+                  Icon(Icons.shortcut_rounded, size: 13, color: fg.withValues(alpha: 0.65)),
+                  const SizedBox(width: 3),
+                  Text(
+                    'محوّلة',
+                    style: TextStyle(color: fg.withValues(alpha: 0.65), fontSize: 11.5, fontStyle: FontStyle.italic),
+                  ),
                 ],
               ),
             ),
+          if (m.reply != null)
+            _QuoteBox(
+              reply: m.reply!,
+              mine: mine,
+              peerName: peerName,
+              onTap: onQuoteTap == null ? null : () => onQuoteTap!(m.reply!.id),
+            ),
+          if (m.media != null)
+            MediaBubbleContent(message: m, onCancel: onCancel)
+          else
+            Text.rich(
+              messageSpan(
+                m,
+                TextStyle(color: fg, fontSize: 15.5, height: 1.5, fontWeight: FontWeight.w500),
+                mine ? fg : p.accent,
+              ),
+            ),
+          const SizedBox(height: 2),
+          Padding(
+            padding: m.media != null ? const EdgeInsets.symmetric(horizontal: 6) : EdgeInsets.zero,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (m.edited) ...[
+                  Text('معدّلة', style: TextStyle(color: fg.withValues(alpha: 0.6), fontSize: 10.5)),
+                  const SizedBox(width: 6),
+                ],
+                Text(time, style: TextStyle(color: fg.withValues(alpha: 0.65), fontSize: 11)),
+                if (mine) ...[
+                  const SizedBox(width: 4),
+                  Icon(statusIcon, size: 15, color: statusColor),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // التفاعلات تحت الفقاعة: كل إيموجي وعدده، وتفاعلي أنا متميّز
+    Widget? reactions;
+    if (m.reactions.isNotEmpty) {
+      final counts = <String, int>{};
+      for (final e in m.reactions.values) {
+        counts[e] = (counts[e] ?? 0) + 1;
+      }
+      final my = m.reactions[myReactionKey];
+      reactions = Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            for (final e in counts.entries)
+              GestureDetector(
+                onTap: onReact == null ? null : () => onReact!(e.key),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: e.key == my ? p.accentSoft : p.surfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: e.key == my ? p.accent : p.border),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(e.key, style: const TextStyle(fontSize: 14, height: 1.2)),
+                      if (e.value > 1) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${e.value}',
+                          style: TextStyle(color: p.textMuted, fontSize: 12, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
+      );
+    }
+
+    final column = Column(
+      crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [box, ?reactions],
+    );
+
+    final bubble = Align(
+      // رسائلي في جهة end (يسار الواجهة العربية) مثل تطبيقات المحادثة
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: !hasAvatar
+            ? column
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (showAvatar)
+                    GestureDetector(
+                      onTap: onSenderTap,
+                      child: Avatar(
+                        name: m.sender ?? '',
+                        color: look!.color,
+                        avatarHash: look!.avatar,
+                        cartoon: look!.cartoon,
+                        size: 30,
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 30),
+                  const SizedBox(width: 6),
+                  Flexible(child: column),
+                ],
+              ),
       ),
     );
     final lit = AnimatedContainer(

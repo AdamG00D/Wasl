@@ -20,6 +20,7 @@ import '../../mesh/mesh_link.dart';
 import '../../mesh/mesh_router.dart';
 import '../../mesh/nearby_link.dart';
 import '../../mesh/peer_link.dart';
+import '../../widgets/avatar_render.dart';
 import '../chat/call/call_controller.dart';
 import '../chat/call/call_screen.dart';
 import '../chat/core/chat_session.dart';
@@ -60,6 +61,14 @@ abstract class Conversation {
   bool get saved => saveOverride ?? AppSettings.instance.saveChats;
 
   DateTime lastActivity = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// متثبتة فوق في القايمة.
+  bool pinned = false;
+
+  /// كتم الإشعارات: 0 = لأ • -1 = دايماً • غير كده = لحد الوقت ده (ملي ثانية).
+  int mutedUntil = 0;
+
+  bool get muted => mutedUntil == -1 || mutedUntil > DateTime.now().millisecondsSinceEpoch;
 
   /// آخر رسالة حقيقية (مش رسالة نظام).
   ChatMessage? get lastMessage {
@@ -270,7 +279,13 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
 
   /// آخر مرة بعتنا حالة الجروب/أمر إزالة لعضو (عشان منكررش كل ثانية).
   final Map<String, DateTime> _syncedAt = {};
-  Conversation? _visible;
+  /// شاشات المحادثات المفتوحة فوق بعض (آخر واحدة هي اللي قدام المستخدم).
+  final List<Conversation> _visibleStack = [];
+  Conversation? get _visible => _visibleStack.lastOrNull;
+
+  /// الواجهة بتسجّل هنا عشان تفتح محادثة (من إشعار).
+  void Function(Conversation c)? onOpenConversation;
+  String? _pendingOpen;
   bool _foreground = true;
   bool _pendingCallScreen = false;
   DirectChat? _callChat;
@@ -326,10 +341,12 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         ..unread = sc.unread
         ..lastActivity = DateTime.fromMillisecondsSinceEpoch(sc.lastActivity);
       chat.session.verifiedPeerKey = sc.verifiedKey;
+      _applyPrefs(chat);
       await _loadSaved(chat);
     }
     for (final g in _store.groups.values.toList()) {
       final chat = _newGroup(g);
+      _applyPrefs(chat);
       final sc = _store.index[g.id];
       if (sc != null) {
         chat
@@ -346,9 +363,13 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       final st = await Permission.notification.status;
       if (!st.isGranted && !st.isPermanentlyDenied) await Permission.notification.request();
     } catch (_) {}
+    SystemBridge.listenNotifications(onOpen: openFromNotification, onReply: _replyFromNotification, onRead: _readFromNotification);
     await SystemBridge.startChatService();
     await r.start();
     notifyListeners();
+    // التطبيق اتفتح من إشعار محادثة
+    final pending = await SystemBridge.takePendingChat();
+    if (pending != null) openFromNotification(pending);
   }
 
   /// يقفل الشبكة. المحادثات اللي مش محفوظة بتتمسح.
@@ -359,7 +380,17 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     router = null;
     link = null;
     kind = null;
-    _visible = null;
+    _visibleStack.clear();
+    _pendingOpen = null;
+    // المحادثات اللي مش محفوظة مبتسيبش أثر: حتى التثبيت والكتم بتوعها بيتمسحوا
+    final gone = [
+      for (final c in _directs.values)
+        if (!c.saved) c.id,
+    ];
+    if (gone.any(_store.prefs.containsKey)) {
+      gone.forEach(_store.prefs.remove);
+      await _store.savePrefs();
+    }
     _pendingCallScreen = false;
     _callChat = null;
     pendingJoins.clear();
@@ -410,7 +441,11 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       ..._directs.values.where((c) => c.lastMessage != null || c.opened),
       ..._groups.values,
     ];
-    list.sort((a, b) => b.lastActivity.compareTo(a.lastActivity));
+    // المتثبتة فوق، وبعدها الأحدث
+    list.sort((a, b) {
+      if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+      return b.lastActivity.compareTo(a.lastActivity);
+    });
     return list;
   }
 
@@ -455,6 +490,9 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       _directs.values.fold(0, (s, c) => s + c.unread) + _groups.values.fold(0, (s, c) => s + c.unread);
 
   int get directUnread => _directs.values.fold(0, (s, c) => s + c.unread);
+
+  /// طلبات انضمام مستنية ردّي (في كل جروباتي).
+  int get groupRequests => _groups.values.fold(0, (s, c) => s + c.requests.length);
   int get groupUnread =>
       _groups.values.fold(0, (s, c) => s + c.unread) + _groups.values.fold(0, (s, c) => s + c.requests.length);
 
@@ -502,6 +540,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       }
       ..onChannelClosed = chat._onClosed
       ..onIncomingMessage = ((m) => _onIncoming(chat, m))
+      ..onReaction = ((m, e, who) => _onReaction(chat, m, e, who))
       ..addListener(() => _onSessionChanged(chat));
     if (l.supportsCalls) {
       // أول إشارة مكالمة توصل بتجهّز المتحكم وبعدين بتتسلّمله
@@ -576,6 +615,42 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _applyPrefs(Conversation c) {
+    final p = _store.prefs[c.id];
+    if (p == null) return;
+    c
+      ..pinned = p.pinned
+      ..mutedUntil = p.mutedUntil;
+  }
+
+  void _forgetPrefs(String id) {
+    if (_store.prefs.remove(id) != null) _store.savePrefs();
+  }
+
+  ChatPrefs _prefsOf(Conversation c) => _store.prefs.putIfAbsent(c.id, ChatPrefs.new);
+
+  /// تثبيت المحادثة فوق في القايمة.
+  Future<void> setPinned(Conversation c, bool pinned) async {
+    c.pinned = pinned;
+    _prefsOf(c).pinned = pinned;
+    notifyListeners();
+    await _store.savePrefs();
+  }
+
+  /// كتم إشعارات المحادثة: [duration] مدة، أو [forever]، أو الاتنين null = إلغاء الكتم.
+  /// المنشن في الجروب بيتبعتله إشعار حتى لو مكتوم.
+  Future<void> setMuted(Conversation c, {Duration? duration, bool forever = false}) async {
+    c.mutedUntil = forever
+        ? -1
+        : duration == null
+            ? 0
+            : DateTime.now().add(duration).millisecondsSinceEpoch;
+    _prefsOf(c).mutedUntil = c.mutedUntil;
+    if (c.muted) SystemBridge.cancelNotification(c.id);
+    notifyListeners();
+    await _store.savePrefs();
+  }
+
   /// الاسم/اللون/الصورة اتغيروا عند حد: نحدّث محادثته.
   void _syncNode(MeshNode n) {
     final chat = _directs[n.id];
@@ -637,6 +712,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       ..onMemberSeen = ((id) => _onMemberSeen(chat, id))
       ..peerName = info.name
       ..onIncomingMessage = ((m) => _onIncoming(chat, m))
+      ..onReaction = ((m, e, who) => _onReaction(chat, m, e, who))
       ..addListener(() => _onSessionChanged(chat));
     _groups[info.id] = chat;
     return chat;
@@ -937,7 +1013,9 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     _store.groups.remove(g.id);
     await _store.saveGroups();
     await _store.deleteChat(g.id);
-    if (_visible == g) _visible = null;
+    _visibleStack.remove(g);
+    _forgetPrefs(g.id);
+    SystemBridge.cancelNotification(g.id);
     g._dispose();
     router?.announce();
     notifyListeners();
@@ -1026,17 +1104,32 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
 
   // ---------------- الرسايل والإشعارات ----------------
 
-  /// المحادثة المفتوحة قدام المستخدم دلوقتي (null = مفيش).
-  void setVisible(Conversation? c) {
-    _visible = c;
-    for (final d in _directs.values) {
-      d.session.viewing = identical(d, c) && _foreground;
+  /// شاشة محادثة اتفتحت قدام المستخدم.
+  void setVisible(Conversation c) {
+    _visibleStack.add(c);
+    _syncViewing();
+    markRead(c);
+  }
+
+  /// شاشة المحادثة دي اتقفلت (اللي تحتها — لو فيه — بترجع هي الظاهرة).
+  void clearVisible(Conversation c) {
+    final i = _visibleStack.lastIndexOf(c);
+    if (i >= 0) _visibleStack.removeAt(i);
+    _syncViewing();
+    final v = _visible;
+    if (v != null) markRead(v);
+  }
+
+  void _syncViewing() {
+    final v = _visible;
+    for (final c in [..._directs.values, ..._groups.values]) {
+      c.session.viewing = identical(c, v) && _foreground;
     }
-    if (c != null) markRead(c);
   }
 
   void markRead(Conversation c) {
     if (_foreground) c.session.markSeen();
+    SystemBridge.cancelNotification(c.id);
     if (c.unread == 0) return;
     c.unread = 0;
     _schedulePersist(c);
@@ -1051,7 +1144,74 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     }
     c.unread++;
     notifyListeners();
-    if (!_foreground) SystemBridge.notify('message');
+    // المكتومة مبتبعتش إشعار — إلا لو حد عملّي منشن
+    if (c.muted && !m.mentionsMe) return;
+    // أنا في القوايم: العدّاد كفاية. في الخلفية أو جوه محادثة تانية: إشعار
+    if (_foreground && _visible == null) return;
+    final text = ChatSession.previewOf(m);
+    _notify(c, m.mentionsMe ? 'منشن ليك: $text' : text, sender: c.isGroup ? m.sender : null);
+  }
+
+  /// حد اتفاعل على رسالة ليّا.
+  void _onReaction(Conversation c, ChatMessage m, String emoji, String? who) {
+    if ((identical(_visible, c) && _foreground) || c.muted) return;
+    if (_foreground && _visible == null) return;
+    _notify(c, 'تفاعل بـ $emoji على: "${ChatSession.previewOf(m)}"', sender: c.isGroup ? who : null);
+  }
+
+  /// إشعار رسالة. لو قفل التطبيق متفعّل: من غير اسم ولا محتوى.
+  Future<void> _notify(Conversation c, String text, {String? sender}) async {
+    if (AppSettings.instance.lockEnabled) {
+      await SystemBridge.notify('message');
+      return;
+    }
+    Uint8List? avatar;
+    final hash = c.avatar;
+    if (hash != null) avatar = await Avatars.read(hash);
+    avatar ??= await AvatarRender.png(name: c.title, color: c.color, cartoon: c.cartoon, group: c.isGroup);
+    await SystemBridge.notifyMessage(
+      chatId: c.id,
+      title: c.title,
+      text: text,
+      sender: sender,
+      group: c.isGroup,
+      avatar: avatar,
+    );
+  }
+
+  Conversation? _conversation(String id) => _directs[id] ?? _groups[id];
+
+  /// المستخدم ضغط على إشعار محادثة: نفتحها (بعد القفل لو التطبيق مقفول).
+  void openFromNotification(String id) {
+    final c = _conversation(id);
+    if (c == null) return;
+    if (isLocked() || onOpenConversation == null) {
+      _pendingOpen = id;
+      return;
+    }
+    _pendingOpen = null;
+    if (identical(_visible, c)) return;
+    onOpenConversation!(c);
+  }
+
+  /// رد سريع من الإشعار.
+  void _replyFromNotification(String id, String text) {
+    final c = _conversation(id);
+    if (c == null || text.trim().isEmpty || isLocked()) return;
+    if (c is DirectChat && !c.session.canSend) c.connect();
+    c.session.send(text);
+    _readFromNotification(id);
+  }
+
+  /// "تمت القراءة" من الإشعار.
+  void _readFromNotification(String id) {
+    final c = _conversation(id);
+    if (c == null || isLocked()) return;
+    c.session.markSeen();
+    if (c.unread == 0) return;
+    c.unread = 0;
+    _schedulePersist(c);
+    notifyListeners();
   }
 
   void _onSessionChanged(Conversation c) {
@@ -1095,8 +1255,10 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     CallScreen.show(nav, call, chat.title);
   }
 
-  /// القفل اتفتح: لو فيه مكالمة بترن نروحلها.
+  /// القفل اتفتح: لو فيه مكالمة بترن نروحلها، ولو جايين من إشعار نفتح محادثته.
   void afterUnlock() {
+    final open = _pendingOpen;
+    if (open != null) openFromNotification(open);
     final chat = _callChat;
     if (chat != null && (chat.call?.busy ?? false)) {
       showCallScreen(chat);
@@ -1118,9 +1280,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     if (fg == _foreground) return;
     _foreground = fg;
     final v = _visible;
-    for (final d in _directs.values) {
-      d.session.viewing = identical(d, v) && fg;
-    }
+    _syncViewing();
     if (fg) {
       SystemBridge.clearNotifications();
       if (v != null) markRead(v);
@@ -1288,7 +1448,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         ..unread = 0
         ..saveOverride = null;
     }
-    _visible = null;
+    _visibleStack.clear();
     for (final id in _store.index.keys.toList()) {
       await _store.deleteChat(id);
     }
@@ -1321,7 +1481,9 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> deleteDirect(DirectChat c) async {
     await c.session.detach();
     _directs.remove(c.id);
-    if (_visible == c) _visible = null;
+    _visibleStack.remove(c);
+    _forgetPrefs(c.id);
+    SystemBridge.cancelNotification(c.id);
     c._dispose();
     await _store.deleteChat(c.id);
     notifyListeners();
