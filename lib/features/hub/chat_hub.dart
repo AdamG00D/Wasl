@@ -45,6 +45,9 @@ abstract class Conversation {
   String get title;
   int get color;
   String? get avatar;
+
+  /// رقم الأفاتار الكرتوني (للأشخاص).
+  int? get cartoon => null;
   ChatSession get session;
 
   /// رسايل وصلت والمحادثة مش مفتوحة.
@@ -72,10 +75,18 @@ abstract class Conversation {
 
 /// محادثة خاصة مع شخص (مشفرة من طرف لطرف، وممكن تعدّي على أجهزة تانية في النص).
 class DirectChat extends Conversation {
-  DirectChat(super.hub, {required this.peerId, required this.publicKey, required String name, required int color, String? avatar})
-      : _title = name,
+  DirectChat(
+    super.hub, {
+    required this.peerId,
+    required this.publicKey,
+    required String name,
+    required int color,
+    String? avatar,
+    int? cartoon,
+  })  : _title = name,
         _color = color,
-        _avatar = avatar;
+        _avatar = avatar,
+        _cartoon = cartoon;
 
   final String peerId;
 
@@ -85,6 +96,10 @@ class DirectChat extends Conversation {
   String _title;
   int _color;
   String? _avatar;
+  int? _cartoon;
+
+  @override
+  int? get cartoon => _cartoon;
 
   @override
   late final ChatSession session;
@@ -161,12 +176,13 @@ class DirectChat extends Conversation {
 
 /// طلب انضمام لجروب (بيظهر لصاحب الجروب).
 class JoinRequest {
-  JoinRequest(this.groupId, this.nodeId, this.name, this.color, this.avatar);
+  JoinRequest(this.groupId, this.nodeId, this.name, this.color, this.avatar, this.cartoon);
   final String groupId;
   final String nodeId;
   final String name;
   final int color;
   final String? avatar;
+  final int? cartoon;
 }
 
 /// جروب أنا عضو فيه.
@@ -194,6 +210,9 @@ class GroupChat extends Conversation {
   String? get avatar => null;
 
   bool get iAmOwner => info.owner == hub.myId;
+
+  /// صاحب الجروب أو مدير فيه.
+  bool get iAmAdmin => info.isAdmin(hub.myId);
 
   /// طلبات انضمام مستنية موافقتي (لو أنا صاحب الجروب).
   final List<JoinRequest> requests = [];
@@ -244,6 +263,13 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
 
   final Map<String, GroupAd> _requestedAds = {};
   final Map<String, DateTime> _avatarAsked = {};
+
+  /// تنبيهات للمستخدم (اتشلت من جروب...) — الواجهة بتعرضها.
+  final StreamController<String> _notices = StreamController.broadcast();
+  Stream<String> get notices => _notices.stream;
+
+  /// آخر مرة بعتنا حالة الجروب/أمر إزالة لعضو (عشان منكررش كل ثانية).
+  final Map<String, DateTime> _syncedAt = {};
   Conversation? _visible;
   bool _foreground = true;
   bool _pendingCallScreen = false;
@@ -257,6 +283,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   String get myId => _me.id;
   int get myColor => _me.color;
   String? get myAvatar => _me.avatarHash;
+  int? get myCartoon => _me.cartoon;
   bool get running => router != null;
 
   // ---------------- التشغيل ----------------
@@ -293,6 +320,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         sc.name,
         sc.color,
         sc.avatar,
+        sc.cartoon,
       )
         ..saveOverride = sc.saveOverride
         ..unread = sc.unread
@@ -336,6 +364,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     _callChat = null;
     pendingJoins.clear();
     _requestedAds.clear();
+    _syncedAt.clear();
     // نحفظ آخر حالة وبعدين نبلّغ الناس إننا خارجين
     for (final c in [..._directs.values, ..._groups.values]) {
       c._saveTimer?.cancel();
@@ -369,6 +398,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         'c': _me.color,
         'k': base64.encode(_me.publicKey),
         'a': ?_me.avatarHash,
+        'e': ?_me.cartoon,
         'g': [for (final g in _groups.values.take(16)) g.info.ad.toWire()],
       };
 
@@ -434,9 +464,17 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
 
   // ---------------- المحادثات الخاصة ----------------
 
-  DirectChat _newDirect(String peerId, Uint8List? pub, String name, int color, String? avatar) {
+  DirectChat _newDirect(String peerId, Uint8List? pub, String name, int color, String? avatar, int? cartoon) {
     final l = link!;
-    final chat = DirectChat(this, peerId: peerId, publicKey: pub, name: name, color: color, avatar: avatar);
+    final chat = DirectChat(
+      this,
+      peerId: peerId,
+      publicKey: pub,
+      name: name,
+      color: color,
+      avatar: avatar,
+      cartoon: cartoon,
+    );
     final s = ChatSession(
       myName: _me.name,
       allowVideo: l.supportsVideo,
@@ -485,7 +523,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     if (chat == null) {
       final node = router?.nodes[peerId];
       if (node == null || link == null) return null;
-      chat = _newDirect(peerId, node.publicKey, node.name, node.color, node.avatar);
+      chat = _newDirect(peerId, node.publicKey, node.name, node.color, node.avatar, node.cartoon);
       chat.lastActivity = DateTime.now();
     }
     chat
@@ -502,7 +540,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     if (chat == null) {
       if (!PeerLink.isHello(body)) return;
       final node = router?.nodes[src];
-      chat = _newDirect(src, node?.publicKey, node?.name ?? 'شخص قريب', node?.color ?? 0, node?.avatar);
+      chat = _newDirect(src, node?.publicKey, node?.name ?? 'شخص قريب', node?.color ?? 0, node?.avatar, node?.cartoon);
       chat.lastActivity = DateTime.now();
     }
     if (chat._peer.onFrame(body)) chat.active = true;
@@ -542,11 +580,13 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   void _syncNode(MeshNode n) {
     final chat = _directs[n.id];
     if (chat != null) {
-      final changed = chat._title != n.name || chat._color != n.color || chat._avatar != n.avatar;
+      final changed =
+          chat._title != n.name || chat._color != n.color || chat._avatar != n.avatar || chat._cartoon != n.cartoon;
       chat
         .._title = n.name
         .._color = n.color
         .._avatar = n.avatar
+        .._cartoon = n.cartoon
         ..publicKey ??= n.publicKey;
       chat.session.peerName = n.name;
       if (changed) _schedulePersist(chat);
@@ -565,6 +605,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     for (final n in router?.nodes.values ?? const <MeshNode>[]) {
       _syncNode(n);
     }
+    _syncGroups();
     notifyListeners();
   }
 
@@ -585,9 +626,15 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       pacing: l.floodPacing,
       allowVideo: l.supportsVideo,
       maxFileBytes: l.groupFileLimit,
+      isBanned: info.banned.contains,
+      audience: () => [
+        for (final n in membersOf(info.id))
+          if (!info.banned.contains(n.id)) n.id,
+      ],
     );
     chat.session = s;
     s
+      ..onMemberSeen = ((id) => _onMemberSeen(chat, id))
       ..peerName = info.name
       ..onIncomingMessage = ((m) => _onIncoming(chat, m))
       ..addListener(() => _onSessionChanged(chat));
@@ -675,16 +722,217 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       }
       final node = r.nodes[req.nodeId];
       if (node == null) return;
+      // الموافقة على حد كان متشال = رجّعناه
+      g.info
+        ..banned.remove(req.nodeId)
+        ..members.add(req.nodeId)
+        ..bump();
+      await _saveGroup(g);
       // مفتاح الجروب بيتسلّم مشفّر للشخص ده بس
       final pair = await Box.pairKey(_me.keyPair, node.publicKey, 'wasl/group-grant');
       final sealed = await Box.seal(pair, g.info.key, utf8.encode('wasl/grant|${g.id}|${req.nodeId}'));
       await r.sendControl(req.nodeId, {'t': 'gk', 'g': g.id, 'd': base64.encode(sealed)});
+      await _broadcastOp(g, g.info.stateOp(withKey: false));
     } catch (_) {}
   }
 
-  /// الخروج من جروب (ورسايله بتتمسح من الجهاز).
-  Future<void> leaveGroup(GroupChat g) async {
-    await g.session.announce('leave');
+  // ---------------- إدارة الجروب ----------------
+
+  Future<void> _saveGroup(GroupChat g) async {
+    _store.groups[g.id] = g.info;
+    await _store.saveGroups();
+    router?.announce();
+    notifyListeners();
+  }
+
+  /// أمر إدارة لعضو واحد، مقفول بمفتاح مشترك بيني وبينه (محدش يقدر يزوّره).
+  Future<void> _sendOp(GroupChat g, String to, Map<String, dynamic> op) async {
+    final r = router;
+    final node = r?.nodes[to];
+    if (r == null || node == null || to == myId) return;
+    final sealed = await GroupOps.seal(
+      me: _me.keyPair,
+      myId: myId,
+      peerKey: node.publicKey,
+      peerId: to,
+      groupId: g.id,
+      op: {...op, 'n': GroupOps.nextNumber()},
+    );
+    await r.sendControl(to, {'t': 'ga', 'g': g.id, 'd': sealed});
+  }
+
+  /// نفس الأمر لكل الأعضاء اللي واصلين لهم (+ [also]).
+  Future<void> _broadcastOp(GroupChat g, Map<String, dynamic> op, {Iterable<String> also = const []}) => Future.wait([
+        for (final id in {...g.members.map((n) => n.id), ...also})
+          _sendOp(g, id, op).catchError((Object _) {}),
+      ]);
+
+  String _nameOf(String id) => id == myId ? 'إنت' : (nameOf(id) ?? 'عضو');
+
+  /// يشيل عضو من الجروب. يرجّع رسالة خطأ أو null.
+  ///
+  /// • بطلب انضمام: المفتاح بيتغير ويتسلّم للباقيين، فاللي اتشال ميقدرش يقرا الجديد.
+  /// • عام / بكلمة سر: اللي اتشال لسه يقدر يوصل للمفتاح، فالإزالة حظر بتطبّقه التطبيقات.
+  Future<String?> kickMember(GroupChat g, String id) async {
+    final info = g.info;
+    if (!info.canKick(myId, id)) return 'مش من صلاحياتك';
+    if (!g.session.canSend) return 'مفيش اتصال دلوقتي';
+    final name = _nameOf(id);
+    info
+      ..banned.add(id)
+      ..admins.remove(id)
+      ..members.remove(id)
+      ..bump();
+    await _broadcastOp(g, {'op': 'kick', 'id': id, 'rev': info.rev}, also: [id]);
+    if (info.mode == GroupMode.ask) {
+      await info.rotateKey();
+      g.session.updateKey(info.key);
+      final key = base64.encode(info.key);
+      await Future.wait([
+        for (final m in {info.owner, ...info.admins, ...info.members})
+          if (!info.banned.contains(m))
+            _sendOp(g, m, {'op': 'key', 'key': key, 'kr': info.keyRev, 'rev': info.rev}).catchError((Object _) {}),
+      ]);
+    }
+    g.session.addSystem('شلت $name من الجروب');
+    await _saveGroup(g);
+    return null;
+  }
+
+  /// يرجّع عضو اتشال قبل كده.
+  Future<void> unbanMember(GroupChat g, String id) async {
+    final info = g.info;
+    if (!g.iAmAdmin || !info.banned.remove(id)) return;
+    info.bump();
+    await _broadcastOp(g, {'op': 'unban', 'id': id, 'rev': info.rev});
+    await _saveGroup(g);
+  }
+
+  /// صاحب الجروب بيعيّن مدير أو يشيله.
+  Future<String?> setAdmin(GroupChat g, String id, bool admin) async {
+    final info = g.info;
+    if (!g.iAmOwner || id == myId || info.banned.contains(id)) return 'صاحب الجروب بس اللي يقدر يعمل كده';
+    if (admin && info.admins.length >= GroupInfo.maxAdmins) return 'وصلت لأقصى عدد مديرين';
+    if (!(admin ? info.admins.add(id) : info.admins.remove(id))) return null;
+    info.bump();
+    await _broadcastOp(g, {'op': 'admin', 'id': id, 'on': admin, 'rev': info.rev});
+    g.session.addSystem(admin ? 'خليت ${_nameOf(id)} مدير' : 'شلت ${_nameOf(id)} من الإدارة');
+    await _saveGroup(g);
+    return null;
+  }
+
+  /// صاحب الجروب أو مدير بيغيّر اسم الجروب.
+  Future<String?> renameGroup(GroupChat g, String name) async {
+    final clean = Profile.cleanName(name);
+    if (!g.iAmAdmin) return 'المديرين بس اللي يقدروا يغيّروا الاسم';
+    if (clean.length < 2) return 'اكتب اسم للجروب';
+    if (clean == g.info.name) return null;
+    g.info
+      ..name = clean
+      ..bump();
+    g.session.peerName = clean;
+    await _broadcastOp(g, {'op': 'name', 'name': clean, 'rev': g.info.rev});
+    g.session.addSystem('غيّرت اسم الجروب لـ "$clean"');
+    await _saveGroup(g);
+    return null;
+  }
+
+  /// أقدر أمسح الرسالة دي عند الكل؟ (رسالتي، أو أنا مدير)
+  bool canDeleteForAll(Conversation c, ChatMessage m) {
+    if (m.kind == MessageKind.mine) return true;
+    final sender = m.senderId;
+    return c is GroupChat && sender != null && c.info.canDelete(myId, sender);
+  }
+
+  /// حذف رسالة عند الكل: رسالتي عادي، ورسالة عضو تاني لو أنا مدير.
+  Future<void> deleteForAll(Conversation c, ChatMessage m) async {
+    final sender = m.senderId;
+    if (m.kind == MessageKind.mine || c is! GroupChat || sender == null) {
+      await c.session.deleteForEveryone(m);
+      return;
+    }
+    if (!c.info.canDelete(myId, sender)) return;
+    c.session.removeByModerator(m.id, sender);
+    await _broadcastOp(c, {'op': 'del', 'mid': m.id, 'sid': sender, 'rev': c.info.rev});
+  }
+
+  /// صاحب جروب بطلب انضمام بيسجّل الأعضاء اللي بيبعتوا (معاهم المفتاح الحالي)،
+  /// عشان المفتاح الجديد يتسلّم لهم بعد إزالة حد.
+  void _onMemberSeen(GroupChat g, String id) {
+    final info = g.info;
+    if (!g.iAmOwner || info.mode != GroupMode.ask || info.members.length >= GroupInfo.maxMembers) return;
+    if (info.banned.contains(id) || !info.members.add(id)) return;
+    info.bump();
+    _saveGroup(g);
+  }
+
+  bool _syncDue(String key, Duration every) {
+    final last = _syncedAt[key];
+    final now = DateTime.now();
+    if (last != null && now.difference(last) < every) return false;
+    _syncedAt[key] = now;
+    return true;
+  }
+
+  /// المدير بيظبّط الأعضاء: اللي حالته قديمة ياخد الحالة، واللي متشال ولسه موجود يتبلّغ تاني.
+  void _syncGroups() {
+    final r = router;
+    if (r == null) return;
+    for (final g in _groups.values) {
+      if (!g.iAmAdmin) continue;
+      final info = g.info;
+      final mine = info.digest;
+      for (final n in r.nodes.values) {
+        final ad = n.groups.where((a) => a.id == g.id).firstOrNull;
+        if (ad == null) continue;
+        if (info.banned.contains(n.id)) {
+          if (_syncDue('k|${g.id}|${n.id}', const Duration(seconds: 20))) {
+            _sendOp(g, n.id, {'op': 'kick', 'id': n.id, 'rev': info.rev}).catchError((Object _) {});
+          }
+        } else if (ad.digest != null && ad.digest != mine) {
+          if (_syncDue('s|${g.id}|${n.id}', const Duration(seconds: 12))) {
+            final trusted = n.id == info.owner || info.admins.contains(n.id) || info.members.contains(n.id);
+            _sendOp(g, n.id, info.stateOp(withKey: trusted)).catchError((Object _) {});
+          }
+        }
+      }
+    }
+  }
+
+  /// أمر إدارة اتطبّق: نحدّث الجلسة والشاشة.
+  Future<void> _afterEffect(GroupChat g, String from, GroupEffect e) async {
+    final info = g.info;
+    if (e.keyChanged) g.session.updateKey(info.key);
+    final by = _nameOf(from);
+    final who = e.target == null ? '' : _nameOf(e.target!);
+    switch (e.kind) {
+      case GroupEffectKind.removedMe:
+        await _dropGroup(g);
+        _notices.add('اتشلت من جروب "${info.name}"');
+        return;
+      case GroupEffectKind.kicked:
+        g.session.addSystem('$by شال $who من الجروب');
+      case GroupEffectKind.unbanned:
+        break;
+      case GroupEffectKind.promoted:
+        g.session.addSystem(e.target == myId ? 'بقيت مدير في الجروب' : '$who بقى مدير');
+      case GroupEffectKind.demoted:
+        g.session.addSystem(e.target == myId ? 'مبقتش مدير في الجروب' : '$who مبقاش مدير');
+      case GroupEffectKind.renamed:
+        g.session.peerName = info.name;
+        g.session.addSystem('$by غيّر اسم الجروب لـ "${info.name}"');
+      case GroupEffectKind.deleted:
+        g.session.removeByModerator(e.messageId!, e.target!);
+      case GroupEffectKind.rekeyed:
+        break;
+      case GroupEffectKind.synced:
+        g.session.peerName = info.name;
+    }
+    await _saveGroup(g);
+  }
+
+  /// يشيل الجروب من عندي من غير ما يعلن (اتشلت منه).
+  Future<void> _dropGroup(GroupChat g) async {
     _groups.remove(g.id);
     _store.groups.remove(g.id);
     await _store.saveGroups();
@@ -693,6 +941,12 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     g._dispose();
     router?.announce();
     notifyListeners();
+  }
+
+  /// الخروج من جروب (ورسايله بتتمسح من الجهاز).
+  Future<void> leaveGroup(GroupChat g) async {
+    await g.session.announce('leave');
+    await _dropGroup(g);
   }
 
   void _onGroup(String groupId, String src, String body) {
@@ -727,9 +981,25 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         if (g == null || !g.iAmOwner || node == null) return;
         if (g.info.mode != GroupMode.ask) return;
         if (g.requests.any((q) => q.nodeId == src)) return;
-        g.requests.add(JoinRequest(gid, src, node.name, node.color, node.avatar));
+        g.requests.add(JoinRequest(gid, src, node.name, node.color, node.avatar, node.cartoon));
         notifyListeners();
         if (!_foreground) SystemBridge.notify('request');
+      case 'ga':
+        // أمر إدارة جروب: لازم يتفك بمفتاح مشترك بيني وبين اللي بعته، وهو يكون مدير
+        final g = _groups[gid];
+        final node = r.nodes[src];
+        if (g == null || node == null) return;
+        final op = await GroupOps.open(
+          me: _me.keyPair,
+          myId: myId,
+          peerKey: node.publicKey,
+          peerId: src,
+          groupId: gid,
+          sealed: m['d'],
+        );
+        if (op == null || _groups[gid] != g) return;
+        final effect = await g.info.apply(src, op, myId: myId);
+        if (effect != null) await _afterEffect(g, src, effect);
       case 'gk':
         final ad = _requestedAds[gid];
         final node = r.nodes[src];
@@ -738,7 +1008,9 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
         try {
           final pair = await Box.pairKey(_me.keyPair, node.publicKey, 'wasl/group-grant');
           final key = await Box.open(pair, base64.decode(d), utf8.encode('wasl/grant|$gid|$myId'));
-          if (key == null || key.length != 32 || !await GroupInfo.matches(ad, key)) return;
+          // المفتاح متأكدين منه لأنه مقفول بمفتاح مشترك مع صاحب الجروب نفسه
+          // (الإعلان اللي شفناه ممكن يكون من عضو لسه معاه مفتاح قديم)
+          if (key == null || key.length != 32) return;
           await _enter(await GroupInfo.fromAd(ad, Uint8List.fromList(key)), announce: true);
           _joinResults.add((ad, true));
         } catch (_) {}
@@ -895,6 +1167,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
       name: c.title,
       color: c.color,
       avatar: c.avatar,
+      cartoon: c.cartoon,
       publicKey: c is DirectChat && c.publicKey != null ? base64.encode(c.publicKey!) : null,
       saveOverride: c.saveOverride,
       unread: c.unread,

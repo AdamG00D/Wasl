@@ -39,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _starting = false;
   bool _leaving = false;
   StreamSubscription<(GroupAd, bool)>? _joinSub;
+  StreamSubscription<String>? _noticeSub;
 
   /// البلوتوث شغال (لوحده أو مع الواي فاي): محتاجين أذوناته الأول.
   bool get _isBluetooth => widget.kind != TransportKind.wifi;
@@ -53,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final (ad, ok) = e;
       showToast(context, ok ? 'اتقبلت في "${ad.name}" 🎉' : 'طلبك لدخول "${ad.name}" اترفض', error: !ok);
     });
+    _noticeSub = _hub.notices.listen((text) {
+      if (mounted) showToast(context, text, error: true);
+    });
     if (_isBluetooth) {
       _check(autoRequest: true);
     } else {
@@ -64,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _joinSub?.cancel();
+    _noticeSub?.cancel();
     super.dispose();
   }
 
@@ -465,6 +470,7 @@ class _ConversationTile extends StatelessWidget {
               name: c.title,
               color: c.color,
               avatarHash: c.avatar,
+              cartoon: c.cartoon,
               size: 54,
               online: direct?.online,
               icon: group != null ? Icons.groups_rounded : null,
@@ -828,7 +834,7 @@ class _PersonRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         child: Row(
           children: [
-            Avatar(name: n.name, color: n.color, avatarHash: n.avatar, size: 48, online: true),
+            Avatar(name: n.name, color: n.color, avatarHash: n.avatar, cartoon: n.cartoon, size: 48, online: true),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

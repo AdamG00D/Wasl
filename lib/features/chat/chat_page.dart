@@ -254,10 +254,17 @@ class _ChatPageState extends State<ChatPage> {
                   title: Text(mine ? 'إلغاء الإرسال' : 'إلغاء الاستلام', style: TextStyle(color: p.danger)),
                   onTap: () => Navigator.pop(ctx, 'cancel'),
                 ),
-              if (mine && !m.transferring)
+              if (!m.transferring && _hub.canDeleteForAll(_c, m))
                 ListTile(
                   leading: Icon(Icons.delete_sweep_rounded, color: p.danger),
-                  title: Text(group ? 'حذف عند الكل' : 'حذف عندي وعنده', style: TextStyle(color: p.danger)),
+                  title: Text(
+                    !group
+                        ? 'حذف عندي وعنده'
+                        : mine
+                            ? 'حذف عند الكل'
+                            : 'حذف عند الكل (إنت مدير)',
+                    style: TextStyle(color: p.danger),
+                  ),
                   onTap: () => Navigator.pop(ctx, 'del-all'),
                 ),
               if (!m.transferring)
@@ -286,7 +293,7 @@ class _ChatPageState extends State<ChatPage> {
       case 'cancel':
         await s.cancelTransfer(m);
       case 'del-all':
-        await s.deleteForEveryone(m);
+        await _hub.deleteForAll(_c, m);
       case 'del-me':
         await s.deleteForMe(m);
     }
@@ -569,6 +576,7 @@ class _Header extends StatelessWidget {
                         name: c.title,
                         color: c.color,
                         avatarHash: c.avatar,
+                        cartoon: c.cartoon,
                         size: 42,
                         online: online,
                         icon: c.isGroup ? Icons.groups_rounded : null,

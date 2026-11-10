@@ -33,6 +33,52 @@ class Device {
     );
     router.onData = _onData;
     router.onGroup = (g, src, body) => groupSessions[g]?.receive(src, body);
+    router.onControl = (src, m) {
+      if (m['t'] == 'ga') onAdminOp(src, '${m['g']}', m['d']);
+    };
+  }
+
+  /// جروبات اتشلت منها.
+  final Set<String> removedFrom = {};
+  final List<GroupEffectKind> effects = [];
+
+  /// أمر إدارة مقفول للعضو ده بس (زي ChatHub).
+  Future<void> sendOp(GroupInfo info, String to, Map<String, dynamic> op) async {
+    final sealed = await GroupOps.seal(
+      me: profile.keyPair,
+      myId: id,
+      peerKey: router.nodes[to]!.publicKey,
+      peerId: to,
+      groupId: info.id,
+      op: {...op, 'n': GroupOps.nextNumber()},
+    );
+    await router.sendControl(to, {'t': 'ga', 'g': info.id, 'd': sealed});
+  }
+
+  Future<void> onAdminOp(String src, String gid, Object? sealed) async {
+    final info = groups[gid];
+    final node = router.nodes[src];
+    if (info == null || node == null) return;
+    final op = await GroupOps.open(
+      me: profile.keyPair,
+      myId: id,
+      peerKey: node.publicKey,
+      peerId: src,
+      groupId: gid,
+      sealed: sealed,
+    );
+    if (op == null) return;
+    final e = await info.apply(src, op, myId: id);
+    if (e == null) return;
+    effects.add(e.kind);
+    final s = groupSessions[gid]!;
+    if (e.keyChanged) s.updateKey(info.key);
+    if (e.kind == GroupEffectKind.removedMe) {
+      removedFrom.add(gid);
+      groups.remove(gid);
+      router.announce();
+    }
+    if (e.kind == GroupEffectKind.deleted) s.removeByModerator(e.messageId!, e.target!);
   }
 
   final Profile profile;
@@ -90,6 +136,7 @@ class Device {
       allowVideo: true,
       maxFileBytes: 8 * 1024 * 1024,
       mediaRoot: root,
+      isBanned: info.banned.contains,
       audience: () => [
         for (final n in router.nodes.values)
           if (n.groups.any((g) => g.id == info.id)) n.id,
@@ -533,6 +580,202 @@ void main() {
       expect(await GroupInfo.matches(info.ad, opened!), isTrue);
       final stolen = await Box.open(await Box.pairKey(other.keyPair, owner.publicKey, 'wasl/group-grant'), sealed, aad);
       expect(stolen, isNull);
+    });
+  });
+
+  group('إدارة الجروب', () {
+    /// نسخة مستقلة من معلومات الجروب لكل جهاز (زي ما كل موبايل عنده نسخته).
+    GroupInfo copy(GroupInfo i) => GroupInfo.fromJson(jsonDecode(jsonEncode(i.toJson())))!;
+
+    Future<(List<Device>, List<GroupInfo>, List<GroupSession>)> trio(GroupMode mode) async {
+      final a = await device('صاحب'), b = await device('بسمة'), c = await device('كريم');
+      net.connect(a.id, b.id);
+      net.connect(a.id, c.id);
+      net.connect(b.id, c.id);
+      await waitFor(() => [a, b, c].every((d) => d.router.nodes.length == 2));
+      final base = await GroupInfo.create(name: 'الشلة', mode: mode, owner: a.id, password: 'سر');
+      if (mode == GroupMode.ask) base.members.addAll([b.id, c.id]);
+      final infos = [base, copy(base), copy(base)];
+      final sessions = [a.joinGroup(infos[0]), b.joinGroup(infos[1]), c.joinGroup(infos[2])];
+      await waitFor(() => [a, b, c].every((d) => d.router.nodes.values.every((n) => n.groups.isNotEmpty)));
+      return ([a, b, c], infos, sessions);
+    }
+
+    test('صاحب الجروب بيشيل عضو: المفتاح بيتغير والمتشال مبيقراش الجديد', () async {
+      final (ds, infos, ss) = await trio(GroupMode.ask);
+      final [a, b, c] = ds;
+      final [ia, ib, _] = infos;
+      final oldKey = base64.encode(ia.key);
+
+      // زي ChatHub.kickMember
+      expect(ia.canKick(a.id, c.id), isTrue);
+      ia
+        ..banned.add(c.id)
+        ..members.remove(c.id)
+        ..bump();
+      for (final to in [b.id, c.id]) {
+        await a.sendOp(ia, to, {'op': 'kick', 'id': c.id, 'rev': ia.rev});
+      }
+      await ia.rotateKey();
+      ss[0].updateKey(ia.key);
+      await a.sendOp(ia, b.id, {'op': 'key', 'key': base64.encode(ia.key), 'kr': ia.keyRev, 'rev': ia.rev});
+
+      await waitFor(() => c.removedFrom.contains(ia.id), what: 'كريم عرف إنه اتشال');
+      await waitFor(() => ib.keyRev == 1 && ib.banned.contains(c.id), what: 'بسمة خدت المفتاح الجديد');
+      expect(base64.encode(ib.key), base64.encode(ia.key));
+      expect(base64.encode(ib.key), isNot(oldKey));
+      expect(ib.digest, ia.digest);
+
+      await ss[0].send('بعد الإزالة');
+      await waitFor(() => ss[1].messages.any((m) => m.text == 'بعد الإزالة'));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      // جلسة كريم لسه بالمفتاح القديم: مش بتفك الجديد
+      expect(ss[2].messages.any((m) => m.text == 'بعد الإزالة'), isFalse);
+      // ولو بعت بالمفتاح القديم محدش بيقراه
+      await ss[2].send('أنا لسه هنا');
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(ss[0].messages.any((m) => m.text == 'أنا لسه هنا'), isFalse);
+    });
+
+    test('في الجروب العام: رسايل المتشال بتترمي', () async {
+      final (ds, infos, ss) = await trio(GroupMode.open);
+      final [a, b, c] = ds;
+      final [ia, ib, _] = infos;
+      ia
+        ..banned.add(c.id)
+        ..bump();
+      await a.sendOp(ia, b.id, {'op': 'kick', 'id': c.id, 'rev': ia.rev});
+      await waitFor(() => ib.banned.contains(c.id));
+      // كريم (تطبيق معدّل مثلاً) لسه بيبعت بمفتاح الجروب العام
+      await ss[2].send('سامعيني؟');
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(ss[0].messages, isEmpty);
+      expect(ss[1].messages, isEmpty);
+    });
+
+    test('العضو العادي ميقدرش يشيل حد ولا ينتحل صاحب الجروب', () async {
+      final (ds, infos, _) = await trio(GroupMode.open);
+      final [a, b, c] = ds;
+      final [ia, ib, ic] = infos;
+
+      // كريم (عضو عادي) بيبعت أمر إزالة لبسمة
+      await c.sendOp(ic, b.id, {'op': 'kick', 'id': b.id});
+      await c.sendOp(ic, a.id, {'op': 'kick', 'id': b.id});
+      // وبيحاول يخلّي نفسه مدير
+      await c.sendOp(ic, a.id, {'op': 'admin', 'id': c.id, 'on': true});
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(b.removedFrom, isEmpty);
+      expect(ia.banned, isEmpty);
+      expect(ia.admins, isEmpty);
+
+      // انتحال: أمر مقفول بمفتاح كريم بس داخل على إنه من صاحب الجروب
+      final forged = await GroupOps.seal(
+        me: c.profile.keyPair,
+        myId: a.id,
+        peerKey: b.profile.publicKey,
+        peerId: b.id,
+        groupId: ib.id,
+        op: {'op': 'kick', 'id': b.id, 'n': GroupOps.nextNumber()},
+      );
+      await b.onAdminOp(a.id, ib.id, forged);
+      expect(b.removedFrom, isEmpty);
+      expect(ib.banned, isEmpty);
+    });
+
+    test('المدير: يشيل عضو ويمسح رسالته، وميقدرش يقرّب لصاحب الجروب', () async {
+      final (ds, infos, ss) = await trio(GroupMode.open);
+      final [a, b, c] = ds;
+      final [ia, ib, ic] = infos;
+
+      // صاحب الجروب بيخلّي بسمة مديرة
+      ia
+        ..admins.add(b.id)
+        ..bump();
+      for (final to in [b.id, c.id]) {
+        await a.sendOp(ia, to, {'op': 'admin', 'id': b.id, 'on': true, 'rev': ia.rev});
+      }
+      await waitFor(() => ib.isAdmin(b.id) && ic.isAdmin(b.id));
+      expect(b.effects, contains(GroupEffectKind.promoted));
+
+      // بسمة تمسح رسالة كريم عند الكل
+      await ss[2].send('رسالة وحشة');
+      await waitFor(() => ss[0].messages.isNotEmpty && ss[1].messages.isNotEmpty);
+      final bad = ss[1].messages.last;
+      expect(ib.canDelete(b.id, c.id), isTrue);
+      ss[1].removeByModerator(bad.id, c.id);
+      for (final to in [a.id, c.id]) {
+        await b.sendOp(ib, to, {'op': 'del', 'mid': bad.id, 'sid': c.id});
+      }
+      await waitFor(() => ss[0].messages.isEmpty && ss[2].messages.isEmpty, what: 'اتمسحت عند الكل');
+
+      // بسمة متقدرش تشيل صاحب الجروب ولا تمسح رسايله ولا تعيّن مديرين
+      expect(ib.canKick(b.id, a.id), isFalse);
+      expect(ib.canDelete(b.id, a.id), isFalse);
+      await b.sendOp(ib, c.id, {'op': 'kick', 'id': a.id});
+      await b.sendOp(ib, c.id, {'op': 'admin', 'id': c.id, 'on': true});
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(ic.banned, isEmpty);
+      expect(ic.admins, {b.id});
+
+      // بس تقدر تشيل كريم
+      ib
+        ..banned.add(c.id)
+        ..bump();
+      for (final to in [a.id, c.id]) {
+        await b.sendOp(ib, to, {'op': 'kick', 'id': c.id, 'rev': ib.rev});
+      }
+      await waitFor(() => c.removedFrom.contains(ia.id) && ia.banned.contains(c.id));
+
+      // صاحب الجروب يشيلها من الإدارة
+      ia
+        ..admins.remove(b.id)
+        ..bump();
+      await a.sendOp(ia, b.id, {'op': 'admin', 'id': b.id, 'on': false, 'rev': ia.rev});
+      await waitFor(() => !ib.isAdmin(b.id));
+      expect(ib.digest, ia.digest);
+    });
+
+    test('أمر قديم ميتعادش، وحالة صاحب الجروب هي المرجع', () async {
+      final owner = await Profile.fromSeed(Kdf.randomBytes(32), name: 'o', color: 0);
+      final admin = await Profile.fromSeed(Kdf.randomBytes(32), name: 'a', color: 0);
+      final me = await Profile.fromSeed(Kdf.randomBytes(32), name: 'm', color: 0);
+      final x = await Profile.fromSeed(Kdf.randomBytes(32), name: 'x', color: 0);
+      final mine = await GroupInfo.create(name: 'الشلة', mode: GroupMode.open, owner: owner.id);
+
+      final kick = {'op': 'kick', 'id': x.id, 'n': 10, 'rev': 1};
+      expect((await mine.apply(owner.id, kick, myId: me.id))?.kind, GroupEffectKind.kicked);
+      expect(await mine.apply(owner.id, {'op': 'unban', 'id': x.id, 'n': 11, 'rev': 2}, myId: me.id), isNotNull);
+      // نفس أمر الإزالة القديم اتبعت تاني
+      expect(await mine.apply(owner.id, kick, myId: me.id), isNull);
+      expect(mine.banned, isEmpty);
+
+      // حالة من صاحب الجروب بتاخد مكان اللي عندي
+      final state = {
+        'op': 'state', 'n': 12, 'rev': 5, 'name': 'اسم جديد',
+        'admins': [admin.id], 'banned': [x.id], 'members': <String>[], 'kr': 0,
+      };
+      expect((await mine.apply(owner.id, state, myId: me.id))?.kind, GroupEffectKind.synced);
+      expect(mine.name, 'اسم جديد');
+      expect(mine.admins, {admin.id});
+      expect(mine.rev, 5);
+
+      // حالة أقدم من مدير متتقبلش، وحالة فيها إني متشال = أنا برا
+      expect(await mine.apply(admin.id, {...state, 'n': 13, 'rev': 4, 'banned': <String>[]}, myId: me.id), isNull);
+      final out = await mine.apply(admin.id, {...state, 'n': 14, 'rev': 6, 'banned': [me.id]}, myId: me.id);
+      expect(out?.kind, GroupEffectKind.removedMe);
+
+      // عند صاحب الجروب: المدير ميقدرش يغيّر الاسم ولا المديرين بحالة مزوّرة
+      final atOwner = await GroupInfo.create(name: 'الشلة', mode: GroupMode.open, owner: owner.id);
+      atOwner.admins.add(admin.id);
+      final rogue = {
+        'op': 'state', 'n': 20, 'rev': 999, 'name': 'اتسرق',
+        'admins': [admin.id, x.id], 'banned': [owner.id, me.id], 'members': <String>[], 'kr': 0,
+      };
+      await atOwner.apply(admin.id, rogue, myId: owner.id);
+      expect(atOwner.name, 'الشلة');
+      expect(atOwner.admins, {admin.id});
+      expect(atOwner.banned, {me.id}); // الإزالة من صلاحيات المدير، بس صاحب الجروب لأ
+      expect(atOwner.rev, 1000); // نسخة صاحب الجروب بقت الأحدث وهترجع للكل
     });
   });
 

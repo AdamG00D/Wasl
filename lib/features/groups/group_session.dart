@@ -69,6 +69,9 @@ class GroupSession extends ChatSession {
   /// العضو ده متشال من الجروب؟ (رسايله بتترمي)
   final bool Function(String id)? isBanned;
 
+  /// عضو بعت حاجة اتفكت بمفتاح الجروب الحالي (يعني معاه المفتاح).
+  void Function(String id)? onMemberSeen;
+
   /// الأعضاء اللي واصلين لهم دلوقتي (عشان نعرف "الكل قرا").
   final Iterable<String> Function()? audience;
 
@@ -441,6 +444,7 @@ class GroupSession extends ChatSession {
     if (sender.isEmpty || sender.length > 32 || sender == myId) return;
     // محدش يبعت باسم حد تاني، واللي اتشال من الجروب مبنسمعلوش
     if (sender != src || (isBanned?.call(sender) ?? false)) return;
+    onMemberSeen?.call(sender);
     var name = '${p['n'] ?? ''}'.replaceAll(RegExp(r'[\u0000-\u001f]'), '').trim();
     if (name.isEmpty) name = 'مجهول';
     if (name.length > 24) name = name.substring(0, 24);
