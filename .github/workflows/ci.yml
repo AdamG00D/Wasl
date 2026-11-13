@@ -16,6 +16,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # نفس نسخة Flutter اللي التطبيق بيتبني بيها (3.50 بتعتبر package:flutter/material.dart قديمة)
+          flutter-version: 3.47.2
           cache: true
       - run: flutter pub get
       - run: flutter analyze
