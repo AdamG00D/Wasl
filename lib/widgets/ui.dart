@@ -420,6 +420,7 @@ class SettingTile extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
+    this.onLongPress,
     this.color,
   });
 
@@ -428,6 +429,7 @@ class SettingTile extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final Color? color;
 
   @override
@@ -435,6 +437,7 @@ class SettingTile extends StatelessWidget {
     final p = context.palette;
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(

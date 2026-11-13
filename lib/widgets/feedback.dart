@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../l10n/l10n.dart';
 
 /// رسالة قصيرة بتظهر فوق أي حاجة (حتى النوافذ والقوائم) وبتختفي لوحدها.
 ///
@@ -145,12 +146,32 @@ class _ToastViewState extends State<_ToastView> with SingleTickerProviderStateMi
   }
 }
 
+/// قايمة اختيارات بتطلع من تحت. [builder] بيرجّع `Column(mainAxisSize: MainAxisSize.min)`.
+///
+/// بتطول لحد 85% من الشاشة، ولو الاختيارات أكتر من كده بتعمل سكرول — عشان آخر اختيار
+/// (زي "حذف عند الكل") ميتقصّش أبداً على الشاشات الصغيرة.
+Future<T?> showActionSheet<T>(
+  BuildContext context, {
+  required WidgetBuilder builder,
+  EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(8, 0, 8, 8),
+}) =>
+    showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.85),
+          child: SingleChildScrollView(padding: padding, child: builder(ctx)),
+        ),
+      ),
+    );
+
 Future<bool> confirmDialog(
   BuildContext context, {
   required String title,
   required String message,
-  String confirm = 'تأكيد',
-  String cancel = 'إلغاء',
+  String? confirm,
+  String? cancel,
   bool destructive = false,
   IconData? icon,
 }) async {
@@ -165,7 +186,7 @@ Future<bool> confirmDialog(
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
           style: TextButton.styleFrom(foregroundColor: p.textMuted),
-          child: Text(cancel),
+          child: Text(cancel ?? ctx.l10n.cancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
@@ -174,7 +195,7 @@ Future<bool> confirmDialog(
             foregroundColor: destructive ? Colors.white : p.onAccent,
           ),
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(confirm),
+          child: Text(confirm ?? ctx.l10n.confirm),
         ),
       ],
     ),
@@ -186,7 +207,7 @@ Future<void> infoDialog(
   BuildContext context, {
   required String title,
   required String message,
-  String ok = 'حسناً',
+  String? ok,
   IconData? icon,
   bool error = false,
 }) {
@@ -201,7 +222,7 @@ Future<void> infoDialog(
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(90, 44)),
           onPressed: () => Navigator.pop(ctx),
-          child: Text(ok),
+          child: Text(ok ?? ctx.l10n.ok),
         ),
       ],
     ),

@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/crypto/kdf.dart';
+import '../../../l10n/l10n.dart';
 import 'frame_transport.dart';
 import 'secure_channel.dart';
 
@@ -151,7 +152,7 @@ class ChatMedia {
     m.canceled = j['canceled'] == true;
     // ملف مكملش قبل ما التطبيق يتقفل
     m.failed = j['failed'] == true || (m.path == null && !m.canceled);
-    if (m.failed) m.failReason ??= 'مكملش';
+    if (m.failed) m.failReason ??= tr.notFinished;
     return m;
   }
 }
@@ -240,7 +241,7 @@ class ChatMessage {
         status = MessageStatus.failed;
         if (media != null && kind == MessageKind.mine) {
           media.failed = true;
-          media.failReason = 'مكملش';
+          media.failReason = tr.notFinished;
         }
       }
       return ChatMessage(
@@ -541,7 +542,7 @@ class ChatSession extends ChangeNotifier {
       _peerKey = ready.peerKey;
       _everReady = true;
       _setState(SessionState.ready);
-      if (messages.isEmpty) addSystem('المحادثة مشفرة من طرف لطرف 🔒');
+      if (messages.isEmpty) addSystem(tr.chatEncryptedSystem);
       _resumeTransfers();
     } catch (_) {
       // فشل المصافحة: سيُبلّغ عبر closed
@@ -552,7 +553,7 @@ class ChatSession extends ChangeNotifier {
   void confirmSafetyCode() {
     if (_peerKey == null) return;
     verifiedPeerKey = _peerKey;
-    addSystem('تم التحقق من رمز الأمان ✓');
+    addSystem(tr.safetyVerifiedSystem);
     notifyListeners();
   }
 
@@ -564,10 +565,10 @@ class ChatSession extends ChangeNotifier {
       return t.length > 100 ? '${t.substring(0, 100)}…' : t;
     }
     return switch (media.kind) {
-      MediaKind.image => '📷 صورة',
-      MediaKind.video => '🎥 فيديو',
-      MediaKind.voice => '🎤 رسالة صوتية${media.durationMs == null ? '' : ' (${formatDuration(media.durationMs!)})'}',
-      MediaKind.file => '📄 ${media.name ?? 'ملف'}',
+      MediaKind.image => tr.previewPhoto,
+      MediaKind.video => tr.previewVideo,
+      MediaKind.voice => '${tr.previewVoice}${media.durationMs == null ? '' : ' (${formatDuration(media.durationMs!)})'}',
+      MediaKind.file => tr.previewFile(media.name ?? tr.file),
     };
   }
 
@@ -769,23 +770,23 @@ class ChatSession extends ChangeNotifier {
     bool forwarded = false,
   }) async {
     final channel = _channel;
-    if (channel == null || !canSend) return 'مش متصل دلوقتي';
+    if (channel == null || !canSend) return tr.notConnectedNow;
     if (kind == MediaKind.video && !allowVideo) {
-      return 'الفيديو متاح في دردشة الواي فاي بس';
+      return tr.videoWifiOnly;
     }
     final int size;
     try {
       size = await file.length();
     } catch (_) {
-      return 'معرفناش نقرا الملف';
+      return tr.readFileFailed;
     }
     final limit = limitFor(kind);
-    if (size == 0) return 'الملف فاضي';
+    if (size == 0) return tr.fileEmpty;
     if (kind == MediaKind.video && await sniffKind(file) == MediaKind.image) {
       // حماية: منبعتش صورة على إنها فيديو (التاني مش هيعرف يشغّلها)
-      return 'الملف ده مش فيديو سليم — اختاره تاني من المعرض';
+      return tr.notAValidVideo;
     }
-    if (size > limit) return 'الملف أكبر من ${_mb(limit)}';
+    if (size > limit) return tr.fileTooBig(_mb(limit));
 
     final cleanName = name == null ? null : _cleanFileName(name);
     final media = ChatMedia(
@@ -818,8 +819,8 @@ class ChatSession extends ChangeNotifier {
   }
 
   static String _mb(int bytes) => bytes >= 1024 * 1024 * 1024
-      ? '${bytes ~/ (1024 * 1024 * 1024)} جيجا'
-      : '${bytes ~/ (1024 * 1024)} ميجا';
+      ? tr.sizeGb(bytes ~/ (1024 * 1024 * 1024))
+      : tr.sizeMb(bytes ~/ (1024 * 1024));
 
   Future<void> _runOutgoing(_OutgoingFile o) async {
     final msg = o.message;
@@ -928,7 +929,7 @@ class ChatSession extends ChangeNotifier {
       // مشكلة في قراية الملف نفسه
       if (!o.canceled && !o.done) {
         media.failed = true;
-        media.failReason ??= 'معرفناش نقرا الملف من الموبايل';
+        media.failReason ??= tr.readFileFromPhoneFailed;
         msg.status = MessageStatus.failed;
       }
     } finally {
@@ -1007,10 +1008,10 @@ class ChatSession extends ChangeNotifier {
   void abortTransfers() {
     _transferTimeout?.cancel();
     for (final id in _outgoing.keys.toList()) {
-      _cancelOutgoing(id, failed: true, notify: false, reason: 'الاتصال وقف قبل ما يكمل');
+      _cancelOutgoing(id, failed: true, notify: false, reason: tr.connectionStoppedEarly);
     }
     for (final id in _incomingFiles.keys.toList()) {
-      _abortFile(id, reason: 'الاتصال وقف قبل ما يكمل');
+      _abortFile(id, reason: tr.connectionStoppedEarly);
     }
     notifyListeners();
   }
@@ -1038,7 +1039,7 @@ class ChatSession extends ChangeNotifier {
 
   static String _cleanFileName(String name) {
     var n = name.split(RegExp(r'[\\/]')).last.replaceAll(RegExp(r'[\u0000-\u001f<>:"|?*]'), '').trim();
-    if (n.isEmpty) n = 'ملف';
+    if (n.isEmpty) n = tr.file;
     return n.length > 80 ? n.substring(n.length - 80) : n;
   }
 
@@ -1138,7 +1139,7 @@ class ChatSession extends ChangeNotifier {
         final bytes = base64.decode('${d['d']}');
         final media = f.message.media!;
         if (i != f.next || f.received + bytes.length > media.size) {
-          await _abortFile(id, reason: 'وصل ناقص');
+          await _abortFile(id, reason: tr.arrivedIncomplete);
           _channel?.sendPacket('file-cancel', {'id': id, 'why': 'corrupt'}).catchError((_) {});
           return;
         }
@@ -1174,7 +1175,7 @@ class ChatSession extends ChangeNotifier {
         if (sha != '${d['sha']}') {
           // الملف وصل بس مختلف عن الأصلي — منعرضوش
           media.failed = true;
-          media.failReason = 'وصل مختلف عن الأصلي';
+          media.failReason = tr.arrivedCorrupt;
           await _deleteQuietly(f.file);
           _channel?.sendPacket('file-cancel', {'id': id, 'why': 'corrupt'}).catchError((_) {});
         } else {
@@ -1193,7 +1194,7 @@ class ChatSession extends ChangeNotifier {
           _cancelOutgoing(
             id,
             failed: true,
-            reason: d['why'] == 'corrupt' ? 'وصل بايظ عند التاني — ابعته تاني' : 'التاني لغى الاستلام',
+            reason: d['why'] == 'corrupt' ? tr.peerGotCorrupt : tr.peerCanceledReceive,
           );
         } else {
           // الطرف التاني لغى الإرسال: الرسالة بتختفي

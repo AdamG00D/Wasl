@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/platform/system_bridge.dart';
+import '../../../l10n/l10n.dart';
 
 enum RequirementState { ok, missing, blocked }
 
@@ -84,10 +85,10 @@ class NearbyRequirements {
       result.add(Requirement(
         id: 'nearby',
         icon: Icons.devices_other_rounded,
-        title: 'إذن الأجهزة القريبة',
-        why: 'عشان Wasl يلاقي الموبايلات القريبة ويتصل بيها بالبلوتوث. مش بيستخدم موقعك.',
+        title: tr.reqNearbyTitle,
+        why: tr.reqNearbyWhy,
         state: st,
-        fixLabel: st == RequirementState.blocked ? 'افتح الإعدادات' : 'اسمح',
+        fixLabel: st == RequirementState.blocked ? tr.openSettings : tr.allow,
       ));
     }
     if (sdk >= 33) {
@@ -95,10 +96,10 @@ class NearbyRequirements {
       result.add(Requirement(
         id: 'wifi',
         icon: Icons.wifi_tethering_rounded,
-        title: 'إذن أجهزة الواي فاي القريبة',
-        why: 'بيخلي الرسايل تتنقل أسرع بالواي فاي المباشر لما الجهازين قريبين.',
+        title: tr.reqWifiTitle,
+        why: tr.reqWifiWhy,
         state: st,
-        fixLabel: st == RequirementState.blocked ? 'افتح الإعدادات' : 'اسمح',
+        fixLabel: st == RequirementState.blocked ? tr.openSettings : tr.allow,
       ));
     }
     if (sdk <= 32) {
@@ -106,10 +107,10 @@ class NearbyRequirements {
       result.add(Requirement(
         id: 'location',
         icon: Icons.location_on_outlined,
-        title: 'إذن الموقع',
-        why: 'أندرويد ${sdk <= 30 ? '11 وأقدم' : '12'} بيشترط إذن الموقع لأي بحث عن أجهزة قريبة. Wasl مش بيقرا موقعك ولا بيحفظه.',
+        title: tr.reqLocationTitle,
+        why: tr.reqLocationWhy(sdk <= 30 ? tr.android11OrOlder : '12'),
         state: st,
-        fixLabel: st == RequirementState.blocked ? 'افتح الإعدادات' : 'اسمح',
+        fixLabel: st == RequirementState.blocked ? tr.openSettings : tr.allow,
       ));
     }
 
@@ -119,10 +120,10 @@ class NearbyRequirements {
       result.add(Requirement(
         id: 'bluetooth',
         icon: Icons.bluetooth_rounded,
-        title: 'تشغيل البلوتوث',
-        why: 'الجهازين بيلاقوا بعض عن طريق البلوتوث.',
+        title: tr.reqBluetoothTitle,
+        why: tr.reqBluetoothWhy,
         state: on ? RequirementState.ok : RequirementState.missing,
-        fixLabel: 'شغّل',
+        fixLabel: tr.turnOn,
       ));
     }
 
@@ -131,10 +132,10 @@ class NearbyRequirements {
       result.add(Requirement(
         id: 'locationService',
         icon: Icons.my_location_rounded,
-        title: 'تشغيل خدمة الموقع (GPS)',
-        why: 'في الإصدار ده من أندرويد البحث عن الأجهزة مش بيشتغل غير والموقع شغال.',
+        title: tr.reqGpsTitle,
+        why: tr.reqGpsWhy,
         state: on ? RequirementState.ok : RequirementState.missing,
-        fixLabel: 'شغّل',
+        fixLabel: tr.turnOn,
       ));
     }
     return result;

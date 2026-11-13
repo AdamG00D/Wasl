@@ -126,23 +126,25 @@ object Notifications {
 
     private fun idOf(chat: String) = 2000 + (chat.hashCode() and 0xFFFFF)
 
-    private fun ensureChannels(context: Context) {
+    private fun str(context: Context, id: Int) = AppLanguage.string(context, id)
+
+    /** القنوات بتتعمل أول مرة، ولو موجودة اسمها ووصفها بيتحدّثوا (مثلاً لما اللغة تتغير). */
+    fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val m = manager(context)
-        if (m.getNotificationChannel(SERVICE_CHANNEL) == null) {
-            m.createNotificationChannel(
-                NotificationChannel(SERVICE_CHANNEL, "الدردشة الشغالة", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "بيفضل ظاهر طول ما الدردشة شغالة في الخلفية"
+        m.createNotificationChannel(
+            NotificationChannel(SERVICE_CHANNEL, str(context, R.string.channel_service), NotificationManager.IMPORTANCE_LOW)
+                .apply {
+                    description = str(context, R.string.channel_service_desc)
                     setShowBadge(false)
                 }
-            )
-        }
-        // نفس القناة: الاسم والوصف بيتحدّثوا لو كانت موجودة
+        )
         m.createNotificationChannel(
-            NotificationChannel(MESSAGE_CHANNEL, "رسايل جديدة", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "إشعار بكل رسالة جديدة"
-                lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-            }
+            NotificationChannel(MESSAGE_CHANNEL, str(context, R.string.channel_messages), NotificationManager.IMPORTANCE_HIGH)
+                .apply {
+                    description = str(context, R.string.channel_messages_desc)
+                    lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+                }
         )
     }
 
@@ -186,7 +188,7 @@ object Notifications {
         return builder(context, SERVICE_CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_wasl)
             .setContentTitle("Wasl")
-            .setContentText(if (inCall) "مكالمة شغالة" else "الدردشة شغالة")
+            .setContentText(str(context, if (inCall) R.string.ongoing_call else R.string.ongoing_chat))
             .setContentIntent(openApp(context))
             .setOngoing(true)
             .setShowWhen(false)
@@ -212,11 +214,14 @@ object Notifications {
     /** إشعار من غير أي اسم أو محتوى (قفل التطبيق متفعّل، أو طلب انضمام / مكالمة). */
     fun show(context: Context, kind: String) {
         ensureChannels(context)
-        val text = when (kind) {
-            "request" -> "طلب انضمام جديد"
-            "call" -> "مكالمة واردة"
-            else -> "رسالة جديدة"
-        }
+        val text = str(
+            context,
+            when (kind) {
+                "request" -> R.string.new_request
+                "call" -> R.string.incoming_call
+                else -> R.string.new_message
+            },
+        )
         try {
             manager(context).notify(MESSAGE_ID, generic(context, text).build())
         } catch (ignored: SecurityException) {
@@ -272,7 +277,7 @@ object Notifications {
             .setGroup(GROUP_KEY)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             // على شاشة قفل الموبايل: من غير اسم ولا محتوى
-            .setPublicVersion(generic(context, "رسالة جديدة").build())
+            .setPublicVersion(generic(context, str(context, R.string.new_message)).build())
         if (icon != null) b.setLargeIcon(icon)
         if (thread.lines.size > 1) b.setNumber(thread.lines.size)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -280,8 +285,9 @@ object Notifications {
             b.setDefaults(Notification.DEFAULT_ALL)
         }
 
+        val you = str(context, R.string.you)
         val style = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            Notification.MessagingStyle(Person.Builder().setName("إنت").build()).also { st ->
+            Notification.MessagingStyle(Person.Builder().setName(you).build()).also { st ->
                 st.isGroupConversation = group
                 if (group) st.conversationTitle = title
                 for (l in thread.lines) {
@@ -292,25 +298,26 @@ object Notifications {
                 }
             }
         } else {
-            Notification.MessagingStyle("إنت").also { st ->
+            Notification.MessagingStyle(you).also { st ->
                 if (group) st.conversationTitle = title
                 for (l in thread.lines) st.addMessage(l.text, l.time, l.sender ?: title)
             }
         }
         b.setStyle(style)
 
-        val remote = RemoteInput.Builder(EXTRA_REPLY).setLabel("رد").build()
+        val replyLabel = str(context, R.string.reply)
+        val remote = RemoteInput.Builder(EXTRA_REPLY).setLabel(replyLabel).build()
         b.addAction(
             Notification.Action.Builder(
                 Icon.createWithResource(context, R.drawable.ic_stat_wasl),
-                "رد",
+                replyLabel,
                 actionIntent(context, ACTION_REPLY, chat, mutable = true),
             ).addRemoteInput(remote).setAllowGeneratedReplies(false).build()
         )
         b.addAction(
             Notification.Action.Builder(
                 Icon.createWithResource(context, R.drawable.ic_stat_wasl),
-                "تمت القراءة",
+                str(context, R.string.mark_read),
                 actionIntent(context, ACTION_READ, chat, mutable = false),
             ).build()
         )
@@ -323,7 +330,7 @@ object Notifications {
                 val summary = builder(context, MESSAGE_CHANNEL)
                     .setSmallIcon(R.drawable.ic_stat_wasl)
                     .setContentTitle("Wasl")
-                    .setContentText("رسايل جديدة من ${threads.size} محادثات")
+                    .setContentText(AppLanguage.context(context).getString(R.string.summary, threads.size))
                     .setGroup(GROUP_KEY)
                     .setGroupSummary(true)
                     .setAutoCancel(true)

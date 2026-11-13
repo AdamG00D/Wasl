@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../../mesh/mesh_router.dart';
 import '../../widgets/feedback.dart';
 import '../../widgets/focus_guard.dart';
@@ -10,9 +11,9 @@ import '../chat/widgets/chat_widgets.dart';
 import '../hub/chat_hub.dart';
 
 String groupModeLabel(GroupMode m) => switch (m) {
-      GroupMode.open => 'عام',
-      GroupMode.password => 'بكلمة سر',
-      GroupMode.ask => 'بطلب انضمام',
+      GroupMode.open => tr.modeOpen,
+      GroupMode.password => tr.modePassword,
+      GroupMode.ask => tr.modeAsk,
     };
 
 IconData groupModeIcon(GroupMode m) => switch (m) {
@@ -52,11 +53,11 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
   Future<void> _create() async {
     final name = _name.text.trim();
     if (name.length < 2) {
-      showToast(context, 'اكتب اسم للجروب', error: true);
+      showToast(context, context.l10n.groupNameNeeded, error: true);
       return;
     }
     if (_mode == GroupMode.password && _password.text.length < 4) {
-      showToast(context, 'كلمة السر 4 حروف على الأقل', error: true);
+      showToast(context, context.l10n.passwordTooShort, error: true);
       return;
     }
     hideKeyboard();
@@ -71,7 +72,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        showToast(context, 'معرفناش نعمل الجروب', error: true);
+        showToast(context, context.l10n.createGroupFailed, error: true);
       }
     }
   }
@@ -79,10 +80,11 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
-    const explain = {
-      GroupMode.open: 'أي حد قريب يشوف الجروب ويدخل على طول.',
-      GroupMode.password: 'الجروب ظاهر، بس محدش يدخل ولا يقرا غير اللي معاه كلمة السر.',
-      GroupMode.ask: 'اللي عايز يدخل يبعتلك طلب، وإنت توافق أو ترفض.',
+    final l = context.l10n;
+    final explain = {
+      GroupMode.open: l.modeOpenExplain,
+      GroupMode.password: l.modePasswordExplain,
+      GroupMode.ask: l.modeAskExplain,
     };
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -93,15 +95,15 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('جروب جديد', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
+              Text(l.newGroup, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
               const SizedBox(height: 16),
               TextField(
                 controller: _name,
                 maxLength: 24,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  hintText: 'اسم الجروب',
-                  prefixIcon: Icon(Icons.groups_rounded),
+                decoration: InputDecoration(
+                  hintText: l.groupName,
+                  prefixIcon: const Icon(Icons.groups_rounded),
                   counterText: '',
                 ),
               ),
@@ -144,7 +146,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                           obscureText: !_show,
                           maxLength: 64,
                           decoration: InputDecoration(
-                            hintText: 'كلمة سر الجروب',
+                            hintText: l.groupPassword,
                             prefixIcon: const Icon(Icons.key_rounded),
                             counterText: '',
                             suffixIcon: IconButton(
@@ -156,7 +158,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                       ),
               ),
               const SizedBox(height: 14),
-              PrimaryButton(label: 'إنشاء الجروب', icon: Icons.add_rounded, loading: _busy, onPressed: _create),
+              PrimaryButton(label: l.createGroupButton, icon: Icons.add_rounded, loading: _busy, onPressed: _create),
             ],
           ),
         ),
@@ -175,7 +177,7 @@ Future<void> joinGroupFlow(BuildContext context, GroupAd ad) async {
       if (g != null) {
         await ChatPage.open(context, g);
       } else {
-        showToast(context, err ?? 'معرفناش ندخل الجروب', error: true);
+        showToast(context, err ?? context.l10n.joinGroupFailed, error: true);
       }
     case GroupMode.password:
       final g = await showModalBottomSheet<GroupChat>(
@@ -189,10 +191,10 @@ Future<void> joinGroupFlow(BuildContext context, GroupAd ad) async {
         final cancel = await confirmDialog(
           context,
           icon: Icons.hourglass_top_rounded,
-          title: 'الطلب لسه مستني',
-          message: 'صاحب الجروب لسه مردّش على طلبك.',
-          confirm: 'إلغاء الطلب',
-          cancel: 'هستنى',
+          title: context.l10n.requestPendingTitle,
+          message: context.l10n.requestPendingBody,
+          confirm: context.l10n.cancelRequest,
+          cancel: context.l10n.keepWaiting,
           destructive: true,
         );
         if (cancel) hub.cancelJoinRequest(ad.id);
@@ -201,14 +203,14 @@ Future<void> joinGroupFlow(BuildContext context, GroupAd ad) async {
       final ok = await confirmDialog(
         context,
         icon: Icons.how_to_reg_rounded,
-        title: 'طلب انضمام لـ "${ad.name}"',
-        message: 'هنبعت طلب لصاحب الجروب، وأول ما يوافق هتدخل تلقائياً.',
-        confirm: 'ابعت الطلب',
+        title: context.l10n.requestJoinTitle(ad.name),
+        message: context.l10n.requestJoinBody,
+        confirm: context.l10n.sendRequest,
       );
       if (!ok) return;
       final err = await hub.requestJoin(ad);
       if (!context.mounted) return;
-      showToast(context, err ?? 'الطلب اتبعت — مستنيين الموافقة', error: err != null);
+      showToast(context, err ?? context.l10n.requestSent, error: err != null);
   }
 }
 
@@ -265,7 +267,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
             children: [
               Text('"${widget.ad.name}"', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text('الجروب ده خاص — اكتب كلمة السر عشان تدخل.', style: TextStyle(color: p.textMuted)),
+              Text(context.l10n.privateGroupPassword, style: TextStyle(color: p.textMuted)),
               const SizedBox(height: 16),
               TextField(
                 controller: _ctrl,
@@ -273,7 +275,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                 obscureText: true,
                 maxLength: 64,
                 decoration: InputDecoration(
-                  hintText: 'كلمة السر',
+                  hintText: context.l10n.password,
                   prefixIcon: const Icon(Icons.key_rounded),
                   counterText: '',
                   errorText: _error,
@@ -281,7 +283,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
                 onSubmitted: (_) => _join(),
               ),
               const SizedBox(height: 14),
-              PrimaryButton(label: 'دخول', icon: Icons.login_rounded, loading: _busy, onPressed: _join),
+              PrimaryButton(label: context.l10n.enter, icon: Icons.login_rounded, loading: _busy, onPressed: _join),
             ],
           ),
         ),
@@ -295,7 +297,7 @@ Future<String?> promptText(
   BuildContext context, {
   required String title,
   required String initial,
-  String confirm = 'حفظ',
+  String? confirm,
   int maxLength = 24,
 }) {
   final ctrl = TextEditingController(text: initial);
@@ -311,11 +313,11 @@ Future<String?> promptText(
         onSubmitted: (v) => Navigator.pop(ctx, v),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.l10n.cancel)),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(90, 44)),
           onPressed: () => Navigator.pop(ctx, ctrl.text),
-          child: Text(confirm),
+          child: Text(confirm ?? ctx.l10n.save),
         ),
       ],
     ),
@@ -324,7 +326,7 @@ Future<String?> promptText(
 
 /// دور العضو في الجروب (للعرض).
 String? groupRoleLabel(GroupChat g, String id) =>
-    id == g.info.owner ? 'صاحب الجروب' : (g.info.admins.contains(id) ? 'مدير' : null);
+    id == g.info.owner ? tr.roleOwner : (g.info.admins.contains(id) ? tr.roleAdmin : null);
 
 /// نافذة عضو في الجروب (زي الواتساب): رسالة خاصة • منشن • مدير • إزالة • حظر.
 ///
@@ -333,7 +335,7 @@ Future<void> showMemberSheet(BuildContext context, GroupChat g, String id, {Stri
   final hub = ChatHub.instance;
   if (id == hub.myId) return;
   final node = hub.nodeFor(id);
-  final name = node?.name ?? hub.nameOf(id) ?? fallbackName ?? 'عضو';
+  final name = node?.name ?? hub.nameOf(id) ?? fallbackName ?? context.l10n.member;
   final info = g.info;
   final p = context.palette;
   final role = groupRoleLabel(g, id);
@@ -358,51 +360,51 @@ Future<void> showMemberSheet(BuildContext context, GroupChat g, String id, {Stri
             const SizedBox(height: 10),
             Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             Text(
-              [?role, node == null ? 'مش متصل دلوقتي' : 'متصل دلوقتي'].join(' • '),
+              [?role, node == null ? context.l10n.notConnectedNow : context.l10n.onlineNow].join(' • '),
               style: TextStyle(color: role != null ? p.accent : p.textMuted, fontSize: 13),
             ),
             const SizedBox(height: 10),
             if (node != null && !blocked)
               ListTile(
                 leading: const Icon(Icons.chat_bubble_outline_rounded),
-                title: const Text('رسالة خاصة'),
-                subtitle: const Text('مشفّرة بينكم انتوا الاتنين بس'),
+                title: Text(ctx.l10n.privateMessage),
+                subtitle: Text(ctx.l10n.privateMessageSub),
                 onTap: () => Navigator.pop(ctx, 'chat'),
               ),
             if (node != null && !blocked && (hub.link?.supportsCalls ?? false))
               ListTile(
                 leading: const Icon(Icons.call_outlined),
-                title: const Text('مكالمة صوتية'),
+                title: Text(ctx.l10n.voiceCall),
                 onTap: () => Navigator.pop(ctx, 'call'),
               ),
             if (onMention != null)
               ListTile(
                 leading: const Icon(Icons.alternate_email_rounded),
-                title: const Text('منشن'),
+                title: Text(ctx.l10n.mention),
                 onTap: () => Navigator.pop(ctx, 'mention'),
               ),
             if (g.iAmOwner && !info.banned.contains(id))
               ListTile(
                 leading: Icon(info.admins.contains(id) ? Icons.remove_moderator_outlined : Icons.add_moderator_outlined),
-                title: Text(info.admins.contains(id) ? 'شيله من الإدارة' : 'خليه مدير'),
+                title: Text(info.admins.contains(id) ? ctx.l10n.removeAdmin : ctx.l10n.makeAdmin),
                 onTap: () => Navigator.pop(ctx, 'admin'),
               ),
             if (info.canKick(hub.myId, id) && !info.banned.contains(id))
               ListTile(
                 leading: Icon(Icons.person_remove_outlined, color: p.danger),
-                title: Text('شيله من الجروب', style: TextStyle(color: p.danger)),
+                title: Text(ctx.l10n.removeFromGroup, style: TextStyle(color: p.danger)),
                 onTap: () => Navigator.pop(ctx, 'kick'),
               ),
             if (g.iAmAdmin && info.banned.contains(id))
               ListTile(
                 leading: const Icon(Icons.person_add_alt_outlined),
-                title: const Text('رجّعه للجروب'),
+                title: Text(ctx.l10n.unban),
                 onTap: () => Navigator.pop(ctx, 'unban'),
               ),
             ListTile(
               leading: Icon(Icons.block_rounded, color: p.danger),
-              title: Text(blocked ? 'إلغاء الحظر' : 'حظر', style: TextStyle(color: p.danger)),
-              subtitle: blocked ? null : const Text('مش هتشوف رسايله في أي مكان'),
+              title: Text(blocked ? ctx.l10n.unblock : ctx.l10n.block, style: TextStyle(color: p.danger)),
+              subtitle: blocked ? null : Text(ctx.l10n.blockSub),
               onTap: () => Navigator.pop(ctx, 'block'),
             ),
           ],
@@ -427,30 +429,29 @@ Future<void> showMemberSheet(BuildContext context, GroupChat g, String id, {Stri
       final ok = await confirmDialog(
         context,
         icon: Icons.person_remove_outlined,
-        title: 'تشيل $name من الجروب؟',
+        title: context.l10n.kickTitle(name),
         message: switch (info.mode) {
-          GroupMode.ask => 'مفتاح الجروب هيتغير، فمش هيقدر يقرا أي رسالة جديدة ولا يدخل تاني غير بموافقة.',
-          GroupMode.password =>
-            'رسايله مش هتظهر لحد ومش هيقدر يبعت. بس هو لسه عارف كلمة السر — لو عايز تمنعه يقرا خالص اعمل جروب جديد بكلمة تانية.',
-          GroupMode.open => 'رسايله مش هتظهر لحد ومش هيقدر يبعت. الجروب العام أي حد قريب يقدر يقراه.',
+          GroupMode.ask => context.l10n.kickAsk,
+          GroupMode.password => context.l10n.kickPassword,
+          GroupMode.open => context.l10n.kickOpen,
         },
-        confirm: 'شيله',
+        confirm: context.l10n.kickConfirm,
         destructive: true,
       );
       if (!ok) return;
       final err = await hub.kickMember(g, id);
-      if (context.mounted) showToast(context, err ?? '$name اتشال من الجروب', error: err != null);
+      if (context.mounted) showToast(context, err ?? context.l10n.kicked(name), error: err != null);
     case 'unban':
       await hub.unbanMember(g, id);
-      if (context.mounted) showToast(context, '$name يقدر يدخل الجروب تاني');
+      if (context.mounted) showToast(context, context.l10n.unbanned(name));
     case 'block':
       if (!blocked) {
         final ok = await confirmDialog(
           context,
           icon: Icons.block_rounded,
-          title: 'حظر $name؟',
-          message: 'مش هيقدر يبعتلك رسايل ولا هتشوف رسايله في الجروبات. تقدر تلغي الحظر من الإعدادات.',
-          confirm: 'حظر',
+          title: context.l10n.blockTitle(name),
+          message: context.l10n.blockBody,
+          confirm: context.l10n.block,
           destructive: true,
         );
         if (!ok) return;
@@ -469,7 +470,7 @@ class GroupInfoScreen extends StatelessWidget {
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GroupInfoScreen(group: g)));
 
   Future<void> _rename(BuildContext context) async {
-    final name = await promptText(context, title: 'اسم الجروب', initial: group.title);
+    final name = await promptText(context, title: context.l10n.groupName, initial: group.title);
     if (name == null || !context.mounted) return;
     final err = await ChatHub.instance.renameGroup(group, name);
     if (err != null && context.mounted) showToast(context, err, error: true);
@@ -486,9 +487,9 @@ class GroupInfoScreen extends StatelessWidget {
         final info = g.info;
         // اتشلت من الجروب أو خرجت منه والشاشة لسه مفتوحة
         if (hub.groupFor(g.id) != g) {
-          return const AppScaffold(
-            title: 'معلومات الجروب',
-            body: EmptyState(icon: Icons.link_off_rounded, title: 'مبقتش في الجروب ده'),
+          return AppScaffold(
+            title: context.l10n.groupInfo,
+            body: EmptyState(icon: Icons.link_off_rounded, title: context.l10n.notInGroup),
           );
         }
         int rank(String id) => id == info.owner ? 0 : (info.admins.contains(id) ? 1 : 2);
@@ -499,10 +500,10 @@ class GroupInfoScreen extends StatelessWidget {
           });
         final owner = hub.nodeFor(info.owner);
         return AppScaffold(
-          title: 'معلومات الجروب',
+          title: context.l10n.groupInfo,
           actions: [
             if (g.iAmAdmin)
-              IconButton(tooltip: 'تغيير الاسم', onPressed: () => _rename(context), icon: const Icon(Icons.edit_rounded)),
+              IconButton(tooltip: context.l10n.rename, onPressed: () => _rename(context), icon: const Icon(Icons.edit_rounded)),
           ],
           body: ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
@@ -524,7 +525,10 @@ class GroupInfoScreen extends StatelessWidget {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      'جروب ${groupModeLabel(info.mode)}${g.iAmOwner ? ' • إنت صاحبه' : owner == null ? '' : ' • صاحبه ${owner.name}'}',
+                      [
+                        context.l10n.groupOfMode(groupModeLabel(info.mode)),
+                        if (g.iAmOwner) context.l10n.youOwnIt else if (owner != null) context.l10n.ownedBy(owner.name),
+                      ].join(' • '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.textMuted),
@@ -533,10 +537,10 @@ class GroupInfoScreen extends StatelessWidget {
                 ],
               ),
               if (g.requests.isNotEmpty) ...[
-                SectionLabel('طلبات انضمام (${g.requests.length})'),
+                SectionLabel(context.l10n.joinRequests(g.requests.length)),
                 for (final r in g.requests.toList()) ...[
                   AppCard(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                    padding: const EdgeInsetsDirectional.fromSTEB(10, 10, 12, 10),
                     borderColor: p.accent.withValues(alpha: 0.4),
                     child: Row(
                       children: [
@@ -548,18 +552,18 @@ class GroupInfoScreen extends StatelessWidget {
                             children: [
                               Text(r.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5)),
                               if (info.banned.contains(r.nodeId))
-                                Text('اتشال من الجروب قبل كده', style: TextStyle(color: p.warning, fontSize: 12)),
+                                Text(context.l10n.removedBefore, style: TextStyle(color: p.warning, fontSize: 12)),
                             ],
                           ),
                         ),
                         IconButton(
-                          tooltip: 'رفض',
+                          tooltip: context.l10n.decline,
                           onPressed: () => hub.answerRequest(r, false),
                           icon: Icon(Icons.close_rounded, color: p.danger),
                         ),
                         const SizedBox(width: 2),
                         IconButton.filled(
-                          tooltip: 'قبول',
+                          tooltip: context.l10n.accept,
                           onPressed: () => hub.answerRequest(r, true),
                           icon: const Icon(Icons.check_rounded),
                         ),
@@ -569,13 +573,13 @@ class GroupInfoScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
               ],
-              SectionLabel('متصلين دلوقتي (${members.length + 1})'),
+              SectionLabel(context.l10n.onlineCount(members.length + 1)),
               AppCard(
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
                     _MemberRow(
-                      name: 'إنت',
+                      name: context.l10n.youName,
                       color: hub.myColor,
                       avatar: hub.myAvatar,
                       cartoon: hub.myCartoon,
@@ -600,15 +604,15 @@ class GroupInfoScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(6, 10, 6, 0),
                 child: Text(
                   g.iAmOwner
-                      ? 'اضغط على أي عضو: رسالة خاصة، تخليه مدير، أو تشيله من الجروب. إنت صاحب الجروب ومحدش يقدر يشيلك.'
+                      ? context.l10n.ownerHint
                       : g.iAmAdmin
-                          ? 'إنت مدير: تقدر تشيل الأعضاء، تمسح رسايلهم، وتغيّر اسم الجروب.'
-                          : 'اضغط على أي عضو عشان تكلمه شات خاص — مشفّر بينكم انتوا الاتنين بس، حتى باقي الجروب مش بيشوفه.',
+                          ? context.l10n.adminHint
+                          : context.l10n.memberHint,
                   style: TextStyle(color: p.textMuted, fontSize: 12.5, height: 1.6),
                 ),
               ),
               if (g.iAmAdmin && info.banned.isNotEmpty) ...[
-                SectionLabel('اتشالوا من الجروب (${info.banned.length})'),
+                SectionLabel(context.l10n.bannedCount(info.banned.length)),
                 AppCard(
                   padding: EdgeInsets.zero,
                   child: Column(
@@ -616,11 +620,11 @@ class GroupInfoScreen extends StatelessWidget {
                       for (final (i, id) in info.banned.indexed) ...[
                         if (i > 0) Divider(indent: 70, color: p.border),
                         _MemberRow(
-                          name: hub.nameOf(id) ?? 'عضو',
+                          name: hub.nameOf(id) ?? context.l10n.member,
                           color: hub.nodeFor(id)?.color ?? senderColorOf(id),
                           avatar: hub.nodeFor(id)?.avatar,
                           cartoon: hub.nodeFor(id)?.cartoon,
-                          trailing: TextButton(onPressed: () => hub.unbanMember(g, id), child: const Text('رجّعه')),
+                          trailing: TextButton(onPressed: () => hub.unbanMember(g, id), child: Text(context.l10n.letBack)),
                         ),
                       ],
                     ],
@@ -629,15 +633,15 @@ class GroupInfoScreen extends StatelessWidget {
               ],
               const SizedBox(height: 22),
               SecondaryButton(
-                label: 'الخروج من الجروب',
+                label: context.l10n.leaveGroup,
                 icon: Icons.logout_rounded,
                 color: p.danger,
                 onPressed: () async {
                   final ok = await confirmDialog(
                     context,
-                    title: 'الخروج من "${g.title}"؟',
-                    message: 'رسايل الجروب هتتمسح من موبايلك.',
-                    confirm: 'خروج',
+                    title: context.l10n.leaveGroupTitle(g.title),
+                    message: context.l10n.groupMessagesErased,
+                    confirm: context.l10n.leave,
                     destructive: true,
                   );
                   if (!ok) return;

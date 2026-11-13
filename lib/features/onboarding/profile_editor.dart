@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/platform/system_bridge.dart';
 import '../../core/profile/profile.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../../widgets/cartoon_avatar.dart';
 import '../../widgets/feedback.dart';
 import '../../widgets/focus_guard.dart';
@@ -61,7 +62,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
       }
       if (!mounted) return;
       if (out == null) {
-        showToast(context, 'معرفناش نستخدم الصورة دي — جرّب صورة تانية', error: true);
+        showToast(context, context.l10n.photoUnusable, error: true);
         return;
       }
       setState(() {
@@ -70,14 +71,14 @@ class _ProfileEditorState extends State<ProfileEditor> {
         _cartoon = null; // الصورة بتاخد مكان الأفاتار الكرتوني
       });
     } catch (_) {
-      if (mounted) showToast(context, 'معرفناش نفتح المعرض', error: true);
+      if (mounted) showToast(context, context.l10n.galleryFailed, error: true);
     }
   }
 
   Future<void> _save() async {
     final name = Profile.cleanName(_name.text);
     if (name.length < 2) {
-      showToast(context, 'اكتب اسم من حرفين على الأقل', error: true);
+      showToast(context, context.l10n.nameTooShort, error: true);
       return;
     }
     hideKeyboard();
@@ -97,7 +98,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        showToast(context, 'معرفناش نحفظ البروفايل', error: true);
+        showToast(context, context.l10n.profileSaveFailed, error: true);
       }
       return;
     }
@@ -112,10 +113,11 @@ class _ProfileEditorState extends State<ProfileEditor> {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = context.l10n;
     final hasPhoto = _picked != null || (!_removed && _existing?.avatarHash != null);
     return Scaffold(
       backgroundColor: p.bg,
-      appBar: _isNew ? null : AppBar(title: const Text('البروفايل')),
+      appBar: _isNew ? null : AppBar(title: Text(l.profile)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -131,14 +133,14 @@ class _ProfileEditorState extends State<ProfileEditor> {
                     child: Icon(Icons.hub_rounded, color: p.onAccent),
                   ),
                   const SizedBox(width: 12),
-                  const Text('وَصْل', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
+                  Text(l.appTitle, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700)),
                 ],
               ),
               const SizedBox(height: 26),
-              const Text('اعمل بروفايلك', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.3)),
+              Text(l.createProfile, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700, height: 1.3)),
               const SizedBox(height: 8),
               Text(
-                'اسم وصورة يشوفهم الناس اللي حواليك. من غير رقم موبايل ولا إيميل ولا إنترنت — كل حاجة على موبايلك بس.',
+                l.createProfileSub,
                 style: TextStyle(color: p.textMuted, height: 1.7, fontSize: 15),
               ),
               const SizedBox(height: 30),
@@ -187,7 +189,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
                     _removed = true;
                   }),
                   style: TextButton.styleFrom(foregroundColor: p.textMuted),
-                  child: const Text('شيل الصورة'),
+                  child: Text(l.removePhoto),
                 ),
               )
             else
@@ -198,15 +200,15 @@ class _ProfileEditorState extends State<ProfileEditor> {
               maxLength: 24,
               textInputAction: TextInputAction.done,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                hintText: 'اسمك',
-                prefixIcon: Icon(Icons.person_outline_rounded),
+              decoration: InputDecoration(
+                hintText: l.yourName,
+                prefixIcon: const Icon(Icons.person_outline_rounded),
                 counterText: '',
               ),
               onSubmitted: (_) => _save(),
             ),
             const SizedBox(height: 22),
-            Text('لون البروفايل', style: TextStyle(color: p.textMuted, fontWeight: FontWeight.w600, fontSize: 13)),
+            Text(l.profileColor, style: TextStyle(color: p.textMuted, fontWeight: FontWeight.w600, fontSize: 13)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
@@ -231,7 +233,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
             ),
             const SizedBox(height: 24),
             Text(
-              'أو اختار أفاتار كرتوني',
+              l.orCartoon,
               style: TextStyle(color: p.textMuted, fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 12),
@@ -263,8 +265,9 @@ class _ProfileEditorState extends State<ProfileEditor> {
             ),
             const SizedBox(height: 34),
             PrimaryButton(
-              label: _isNew ? 'يلا نبدأ' : 'حفظ',
-              icon: _isNew ? Icons.arrow_back_rounded : Icons.check_rounded,
+              label: _isNew ? l.letsStart : l.save,
+              // سهم لقدّام: من غير ما يتقلب مع اتجاه اللغة (نفس شكله في العربي)
+              icon: _isNew ? Icons.east_rounded : Icons.check_rounded,
               loading: _busy,
               onPressed: _save,
             ),

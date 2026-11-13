@@ -1,6 +1,6 @@
 # Wasl (وَصْل) — guide for AI coding agents
 
-Wasl is an offline chat app for Android (Flutter, Arabic UI, RTL): people nearby talk over **Bluetooth** (Google
+Wasl is an offline chat app for Android (Flutter, Arabic + English UI, RTL / LTR): people nearby talk over **Bluetooth** (Google
 Nearby Connections) or **Wi-Fi / hotspot** (UDP discovery + TCP) — or both at once, which turns the phone into a
 bridge between the two — with no internet and no server. Devices form a **mesh** (messages hop through other
 phones), private chats are end-to-end encrypted automatically (no passwords), and there are groups (open /
@@ -45,13 +45,15 @@ build); only `build_release.sh` insists on it.
 ```
 lib/
   main.dart                 start: lock gate → profile editor (first run) → TransportScreen
+  l10n/                     app_ar.arb (template) + app_en.arb → generated AppLocalizations; l10n.dart (context.l10n,
+                            tr, L10n.resolve / pick)
   core/
-    config.dart             ports, service id, version
+    config.dart             ports, service id, version, repo URL
     nav.dart                rootNavigatorKey
     crypto/                 kdf.dart (Argon2id/HKDF/SHA-256), box.dart (AES-GCM box, native for big payloads, pairKey)
     profile/profile.dart    Profile (name, color, avatar hash, static X25519 identity; id = sha256(pub)[0..8]),
                             ProfileStore, Avatars (small JPEGs stored by hash)
-    settings/app_settings.dart   theme, accent, saveChats (default false), PIN lock
+    settings/app_settings.dart   theme, accent, language, saveChats (default false), PIN lock
     storage/vault.dart      master key wrapped by Android Keystore; encrypted JSON files
     storage/chat_store.dart saved chats index + messages + joined groups + blocked ids + per-chat prefs (pin / mute)
     platform/               system_bridge.dart (channel wasl/system), secure_clipboard.dart
@@ -79,10 +81,13 @@ lib/
     home/                   transport_screen.dart (Bluetooth / Wi-Fi / both), home_screen.dart (swipeable pages:
                             chats incl. joined groups • groups • nearby people + groups)
     onboarding/profile_editor.dart, settings/settings_screen.dart, lock/app_lock.dart
-  widgets/                  ui.dart (Avatar, AppCard, buttons, EmptyState…), feedback.dart (showToast, dialogs), focus_guard.dart,
+  widgets/                  ui.dart (Avatar, AppCard, buttons, EmptyState…), feedback.dart (showToast, dialogs,
+                            showActionSheet), focus_guard.dart,
                             cartoon_avatar.dart (24 avatars painted in code), avatar_render.dart (avatar → PNG for notifications)
 android/app/src/main/kotlin/com/adam/wasl/
-  MainActivity.kt    channels: wasl/system (bluetooth/wifi/notify/service/files) + wasl/vault (keystore wrap, biometric)
+  MainActivity.kt    channels: wasl/system (bluetooth/wifi/notify/service/files/language/openUrl) + wasl/vault
+                     (keystore wrap, biometric)
+  AppLanguage.kt     language of native strings (follows the app's choice, not the phone's)
   KeyVault.kt        Keystore AES key + BiometricGate
   ChatService.kt     foreground service + Notifications (MessagingStyle per chat, reply / mark-read receiver);
                      onTaskRemoved kills the process
@@ -91,11 +96,20 @@ android/app/src/main/kotlin/com/adam/wasl/
 
 ## Conventions
 
-- **UI text and code comments are in Egyptian Arabic** (short, friendly). Layout is RTL — prefer
-  `EdgeInsetsDirectional` / `AlignmentDirectional` / `PositionedDirectional`.
+- **UI text is localized**: every user-visible string goes in **both** `lib/l10n/app_ar.arb` (template, Egyptian
+  Arabic, short and friendly) and `lib/l10n/app_en.arb`. Use `context.l10n.key` in widgets (rebuilds on language
+  change) and `tr.key` (from `lib/l10n/l10n.dart`) where there's no context — hub, sessions, system messages, errors.
+  `flutter gen-l10n` (or `pub get`) regenerates `app_localizations*.dart`. Native text (notifications, biometric) is in
+  `res/values/strings.xml` (English) + `res/values-ar/`, picked through `AppLanguage` with the language Flutter sends.
+- Language: `AppSettings.language` = null (follow the phone: Arabic if the phone is Arabic, otherwise English) / 'ar' /
+  'en'. Code comments stay in Egyptian Arabic.
+- Layout flips RTL (Arabic) / LTR (English) — always `EdgeInsetsDirectional` / `AlignmentDirectional` /
+  `PositionedDirectional`, never fixed left / right.
 - Colors only through `context.palette`; no hard-coded theme colors in screens. Font: IBM Plex Sans Arabic (`Plex`),
   weights 400–700 only.
 - Messages to the user: `showToast(context, ...)` (never `SnackBar`). Dialogs: `confirmDialog` / `infoDialog`.
+  Bottom-sheet menus: `showActionSheet` (scrolls when the options don't fit — never a bare `Column` in
+  `showModalBottomSheet`).
 - Closing the keyboard: **always `hideKeyboard()`**, never `FocusScope.of(context).unfocus()`.
 - Never log message contents.
 - Notifications show sender + text **only when the app lock is off**; with the lock on use the generic

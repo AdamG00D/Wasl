@@ -16,6 +16,9 @@ class AppSettings extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   AccentTheme accent = AccentTheme.all.first;
 
+  /// لغة التطبيق: 'ar' / 'en'، أو null = زي لغة الجهاز (الافتراضي).
+  String? language;
+
   /// حفظ المحادثات على الجهاز (الافتراضي: لأ).
   bool saveChats = false;
 
@@ -33,6 +36,8 @@ class AppSettings extends ChangeNotifier {
     final p = _prefs = await SharedPreferences.getInstance();
     themeMode = ThemeMode.values[(p.getInt('themeMode') ?? 0).clamp(0, ThemeMode.values.length - 1)];
     accent = AccentTheme.byId(p.getString('accent'));
+    final lang = p.getString('language');
+    language = const ['ar', 'en'].contains(lang) ? lang : null;
     saveChats = p.getBool('saveChats') ?? false;
     biometric = p.getBool('biometric') ?? false;
     lockAfterMinutes = p.getInt('lockAfter') ?? 1;
@@ -50,6 +55,16 @@ class AppSettings extends ChangeNotifier {
     accent = a;
     notifyListeners();
     await _prefs?.setString('accent', a.id);
+  }
+
+  Future<void> setLanguage(String? code) async {
+    language = code;
+    notifyListeners();
+    if (code == null) {
+      await _prefs?.remove('language');
+    } else {
+      await _prefs?.setString('language', code);
+    }
   }
 
   Future<void> setSaveChats(bool v) async {

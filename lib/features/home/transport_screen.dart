@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/profile/profile.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../../widgets/ui.dart';
 import '../hub/chat_hub.dart';
 import '../settings/settings_screen.dart';
@@ -21,6 +22,7 @@ class TransportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.palette;
+    final l = context.l10n;
     return Scaffold(
       backgroundColor: p.bg,
       body: SafeArea(
@@ -39,7 +41,7 @@ class TransportScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('أهلاً', style: TextStyle(color: p.textMuted, fontSize: 13, height: 1.2)),
+                          Text(l.hello, style: TextStyle(color: p.textMuted, fontSize: 13, height: 1.2)),
                           Text(
                             me.name,
                             maxLines: 1,
@@ -50,7 +52,7 @@ class TransportScreen extends StatelessWidget {
                       ),
                     ),
                     IconButton.filledTonal(
-                      tooltip: 'الإعدادات',
+                      tooltip: l.settingsTitle,
                       style: IconButton.styleFrom(backgroundColor: p.surface, foregroundColor: p.text),
                       onPressed: () => SettingsScreen.open(context),
                       icon: const Icon(Icons.tune_rounded),
@@ -58,40 +60,39 @@ class TransportScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 40),
-                const Text(
-                  'هتتكلم\nإزاي النهارده؟',
-                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700, height: 1.3),
+                Text(
+                  l.transportHeadline,
+                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w700, height: 1.3),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'من غير إنترنت في الحالتين، وكل حاجة مشفّرة.',
+                  l.transportSub,
                   style: TextStyle(color: p.textMuted, fontSize: 15, height: 1.6),
                 ),
                 const SizedBox(height: 28),
                 _Choice(
                   icon: Icons.bluetooth_rounded,
-                  title: 'بلوتوث',
-                  subtitle: 'للناس القريبة منك من غير أي شبكة. الرسايل بتعدّي من موبايل لموبايل فبتوصل لأبعد.',
-                  tags: const ['من غير شبكة', 'Mesh'],
+                  title: l.bluetooth,
+                  subtitle: l.bluetoothDesc,
+                  tags: [l.tagNoNetwork, 'Mesh'],
                   gradient: [p.accent, p.second],
                   onTap: () => _open(context, TransportKind.bluetooth),
                 ),
                 const SizedBox(height: 14),
                 _Choice(
                   icon: Icons.wifi_rounded,
-                  title: 'واي فاي',
-                  subtitle: 'نفس الواي فاي أو هوت سبوت من موبايل. أسرع بكتير، وفيه فيديو ومكالمات صوت وصورة.',
-                  tags: const ['أسرع', 'مكالمات', 'فيديو'],
+                  title: l.wifi,
+                  subtitle: l.wifiDesc,
+                  tags: [l.tagFaster, l.tagCalls, l.tagVideo],
                   gradient: [p.second, p.accent],
                   onTap: () => _open(context, TransportKind.wifi),
                 ),
                 const SizedBox(height: 14),
                 _Choice(
                   icon: Icons.hub_rounded,
-                  title: 'الاتنين مع بعض',
-                  subtitle:
-                      'موبايلك يبقى كوبري: يوصّل اللي على الواي فاي أو الهوت سبوت باللي على البلوتوث، فكذا شبكة تبقى شبكة واحدة.',
-                  tags: const ['كوبري', 'أوسع مدى', 'بطارية أكتر'],
+                  title: l.both,
+                  subtitle: l.bothDesc,
+                  tags: [l.tagBridge, l.tagRange, l.tagBattery],
                   gradient: [p.accent, Color.lerp(p.accent, p.second, 0.5)!],
                   onTap: () => _open(context, TransportKind.both),
                 ),
@@ -164,7 +165,7 @@ class _Choice extends StatelessWidget {
                         Expanded(
                           child: Text(title, style: TextStyle(color: fg, fontSize: 24, fontWeight: FontWeight.w700)),
                         ),
-                        Icon(Icons.arrow_back_rounded, color: fg),
+                        Icon(Icons.east_rounded, color: fg),
                       ],
                     ),
                     const SizedBox(height: 14),

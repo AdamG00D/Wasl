@@ -6,6 +6,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../../../widgets/feedback.dart';
 import '../../../widgets/ui.dart';
 import 'call_controller.dart';
@@ -169,11 +170,11 @@ class _CallScreenState extends State<CallScreen> {
   String get _status {
     switch (c.state) {
       case CallState.incoming:
-        return c.video ? 'مكالمة فيديو واردة' : 'مكالمة صوتية واردة';
+        return c.video ? context.l10n.callIncomingVideo : context.l10n.callIncomingVoice;
       case CallState.outgoing:
-        return 'بيرن...';
+        return context.l10n.callRinging;
       case CallState.connecting:
-        return 'جاري التوصيل...';
+        return context.l10n.callConnecting;
       case CallState.active:
         final d = DateTime.now().difference(c.startedAt ?? DateTime.now());
         final h = d.inHours;
@@ -181,7 +182,7 @@ class _CallScreenState extends State<CallScreen> {
         final s = (d.inSeconds % 60).toString().padLeft(2, '0');
         return h > 0 ? '$h:$m:$s' : '$m:$s';
       case CallState.idle:
-        return c.endReason ?? 'المكالمة خلصت';
+        return c.endReason ?? context.l10n.callEnded;
     }
   }
 
@@ -194,11 +195,11 @@ class _CallScreenState extends State<CallScreen> {
 
   Widget _remoteView() => c.remoteHasVideo
       ? RTCVideoView(c.remoteRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
-      : _CameraOff(name: widget.peerName, label: 'الكاميرا مقفولة');
+      : _CameraOff(name: widget.peerName, label: context.l10n.cameraOff);
 
   Widget _localView() => c.cameraOn
       ? RTCVideoView(c.localRenderer, mirror: true, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
-      : const _CameraOff(name: 'أنا', label: 'الكاميرا مقفولة');
+      : _CameraOff(name: context.l10n.me, label: context.l10n.cameraOff);
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +352,7 @@ class _CallScreenState extends State<CallScreen> {
                           Icon(Icons.lock_rounded, size: 14, color: Colors.white.withValues(alpha: 0.6)),
                           const SizedBox(width: 4),
                           Text(
-                            'مشفّرة من طرف لطرف',
+                            context.l10n.e2eEncrypted,
                             style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12.5),
                           ),
                         ],
@@ -498,10 +499,10 @@ class _Controls extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _RoundAction(icon: Icons.call_end_rounded, label: 'رفض', color: const Color(0xFFE5484D), onTap: c.reject),
+          _RoundAction(icon: Icons.call_end_rounded, label: context.l10n.decline, color: const Color(0xFFE5484D), onTap: c.reject),
           _RoundAction(
             icon: c.video ? Icons.videocam_rounded : Icons.call_rounded,
-            label: 'قبول',
+            label: context.l10n.accept,
             color: const Color(0xFF22C55E),
             onTap: onAccept,
           ),
@@ -522,26 +523,26 @@ class _Controls extends StatelessWidget {
           if (c.video) ...[
             _ToggleAction(
               icon: Icons.cameraswitch_rounded,
-              tooltip: 'قلب الكاميرا',
+              tooltip: context.l10n.flipCamera,
               active: false,
               onTap: keep(c.switchCamera),
             ),
             _ToggleAction(
               icon: c.cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
-              tooltip: 'الكاميرا',
+              tooltip: context.l10n.camera,
               active: !c.cameraOn,
               onTap: keep(c.toggleCamera),
             ),
           ],
           _ToggleAction(
             icon: c.micOn ? Icons.mic_rounded : Icons.mic_off_rounded,
-            tooltip: c.micOn ? 'كتم' : 'مكتوم',
+            tooltip: c.micOn ? context.l10n.mute : context.l10n.muted,
             active: !c.micOn,
             onTap: keep(c.toggleMic),
           ),
           _ToggleAction(
             icon: c.speakerOn ? Icons.volume_up_rounded : Icons.hearing_rounded,
-            tooltip: c.speakerOn ? 'السماعة' : 'الأذن',
+            tooltip: c.speakerOn ? context.l10n.speaker : context.l10n.earpiece,
             active: c.speakerOn,
             onTap: keep(c.toggleSpeaker),
           ),

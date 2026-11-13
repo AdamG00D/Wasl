@@ -14,6 +14,7 @@ import '../../core/platform/system_bridge.dart';
 import '../../core/profile/profile.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/storage/chat_store.dart';
+import '../../l10n/l10n.dart';
 import '../../mesh/dual_link.dart';
 import '../../mesh/lan_link.dart';
 import '../../mesh/mesh_link.dart';
@@ -579,7 +580,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     if (chat == null) {
       if (!PeerLink.isHello(body)) return;
       final node = router?.nodes[src];
-      chat = _newDirect(src, node?.publicKey, node?.name ?? 'شخص قريب', node?.color ?? 0, node?.avatar, node?.cartoon);
+      chat = _newDirect(src, node?.publicKey, node?.name ?? tr.personNearby, node?.color ?? 0, node?.avatar, node?.cartoon);
       chat.lastActivity = DateTime.now();
     }
     if (chat._peer.onFrame(body)) chat.active = true;
@@ -735,9 +736,9 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     final info = await GroupInfo.create(name: name, mode: mode, owner: myId, password: password);
     final chat = await _enter(info, announce: false);
     chat.session.addSystem(switch (mode) {
-      GroupMode.open => 'الجروب اتعمل — أي حد قريب يقدر يدخل',
-      GroupMode.password => 'الجروب اتعمل — الدخول بكلمة السر',
-      GroupMode.ask => 'الجروب اتعمل — الدخول بموافقتك',
+      GroupMode.open => tr.groupCreatedOpen,
+      GroupMode.password => tr.groupCreatedPassword,
+      GroupMode.ask => tr.groupCreatedAsk,
     });
     return chat;
   }
@@ -746,16 +747,16 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   Future<(GroupChat?, String?)> joinGroup(GroupAd ad, {String? password}) async {
     final existing = _groups[ad.id];
     if (existing != null) return (existing, null);
-    if (router == null) return (null, 'الشبكة مش شغالة');
+    if (router == null) return (null, tr.networkNotRunning);
     final Uint8List key;
     switch (ad.mode) {
       case GroupMode.open:
         key = await GroupInfo.openKey(ad.id);
       case GroupMode.password:
         key = await GroupInfo.passwordKey(ad.id, password ?? '');
-        if (!await GroupInfo.matches(ad, key)) return (null, 'كلمة السر غلط');
+        if (!await GroupInfo.matches(ad, key)) return (null, tr.wrongPassword);
       case GroupMode.ask:
-        return (null, 'الجروب ده محتاج موافقة صاحبه');
+        return (null, tr.groupNeedsApproval);
     }
     return (await _enter(await GroupInfo.fromAd(ad, key), announce: true), null);
   }
@@ -763,8 +764,8 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   /// يبعت طلب انضمام لصاحب الجروب. يرجّع رسالة خطأ أو null.
   Future<String?> requestJoin(GroupAd ad) async {
     final r = router;
-    if (r == null) return 'الشبكة مش شغالة';
-    if (!r.reachable(ad.owner)) return 'صاحب الجروب مش متصل دلوقتي — جرّب لما يكون قريب';
+    if (r == null) return tr.networkNotRunning;
+    if (!r.reachable(ad.owner)) return tr.ownerOffline;
     pendingJoins.add(ad.id);
     _requestedAds[ad.id] = ad;
     notifyListeners();
@@ -774,7 +775,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {
       pendingJoins.remove(ad.id);
       notifyListeners();
-      return 'معرفناش نبعت الطلب';
+      return tr.sendRequestFailed;
     }
   }
 
@@ -846,7 +847,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
           _sendOp(g, id, op).catchError((Object _) {}),
       ]);
 
-  String _nameOf(String id) => id == myId ? 'إنت' : (nameOf(id) ?? 'عضو');
+  String _nameOf(String id) => id == myId ? tr.youName : (nameOf(id) ?? tr.member);
 
   /// يشيل عضو من الجروب. يرجّع رسالة خطأ أو null.
   ///
@@ -854,8 +855,8 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   /// • عام / بكلمة سر: اللي اتشال لسه يقدر يوصل للمفتاح، فالإزالة حظر بتطبّقه التطبيقات.
   Future<String?> kickMember(GroupChat g, String id) async {
     final info = g.info;
-    if (!info.canKick(myId, id)) return 'مش من صلاحياتك';
-    if (!g.session.canSend) return 'مفيش اتصال دلوقتي';
+    if (!info.canKick(myId, id)) return tr.notAllowed;
+    if (!g.session.canSend) return tr.noConnectionNow;
     final name = _nameOf(id);
     info
       ..banned.add(id)
@@ -873,7 +874,7 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
             _sendOp(g, m, {'op': 'key', 'key': key, 'kr': info.keyRev, 'rev': info.rev}).catchError((Object _) {}),
       ]);
     }
-    g.session.addSystem('شلت $name من الجروب');
+    g.session.addSystem(tr.youKicked(name));
     await _saveGroup(g);
     return null;
   }
@@ -890,12 +891,12 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   /// صاحب الجروب بيعيّن مدير أو يشيله.
   Future<String?> setAdmin(GroupChat g, String id, bool admin) async {
     final info = g.info;
-    if (!g.iAmOwner || id == myId || info.banned.contains(id)) return 'صاحب الجروب بس اللي يقدر يعمل كده';
-    if (admin && info.admins.length >= GroupInfo.maxAdmins) return 'وصلت لأقصى عدد مديرين';
+    if (!g.iAmOwner || id == myId || info.banned.contains(id)) return tr.ownerOnly;
+    if (admin && info.admins.length >= GroupInfo.maxAdmins) return tr.maxAdmins;
     if (!(admin ? info.admins.add(id) : info.admins.remove(id))) return null;
     info.bump();
     await _broadcastOp(g, {'op': 'admin', 'id': id, 'on': admin, 'rev': info.rev});
-    g.session.addSystem(admin ? 'خليت ${_nameOf(id)} مدير' : 'شلت ${_nameOf(id)} من الإدارة');
+    g.session.addSystem(admin ? tr.youMadeAdmin(_nameOf(id)) : tr.youRemovedAdmin(_nameOf(id)));
     await _saveGroup(g);
     return null;
   }
@@ -903,15 +904,15 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
   /// صاحب الجروب أو مدير بيغيّر اسم الجروب.
   Future<String?> renameGroup(GroupChat g, String name) async {
     final clean = Profile.cleanName(name);
-    if (!g.iAmAdmin) return 'المديرين بس اللي يقدروا يغيّروا الاسم';
-    if (clean.length < 2) return 'اكتب اسم للجروب';
+    if (!g.iAmAdmin) return tr.adminsOnlyRename;
+    if (clean.length < 2) return tr.groupNameNeeded;
     if (clean == g.info.name) return null;
     g.info
       ..name = clean
       ..bump();
     g.session.peerName = clean;
     await _broadcastOp(g, {'op': 'name', 'name': clean, 'rev': g.info.rev});
-    g.session.addSystem('غيّرت اسم الجروب لـ "$clean"');
+    g.session.addSystem(tr.youRenamed(clean));
     await _saveGroup(g);
     return null;
   }
@@ -987,19 +988,19 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     switch (e.kind) {
       case GroupEffectKind.removedMe:
         await _dropGroup(g);
-        _notices.add('اتشلت من جروب "${info.name}"');
+        _notices.add(tr.removedFromGroupNotice(info.name));
         return;
       case GroupEffectKind.kicked:
-        g.session.addSystem('$by شال $who من الجروب');
+        g.session.addSystem(tr.byKicked(by, who));
       case GroupEffectKind.unbanned:
         break;
       case GroupEffectKind.promoted:
-        g.session.addSystem(e.target == myId ? 'بقيت مدير في الجروب' : '$who بقى مدير');
+        g.session.addSystem(e.target == myId ? tr.youBecameAdmin : tr.becameAdmin(who));
       case GroupEffectKind.demoted:
-        g.session.addSystem(e.target == myId ? 'مبقتش مدير في الجروب' : '$who مبقاش مدير');
+        g.session.addSystem(e.target == myId ? tr.youNoLongerAdmin : tr.noLongerAdmin(who));
       case GroupEffectKind.renamed:
         g.session.peerName = info.name;
-        g.session.addSystem('$by غيّر اسم الجروب لـ "${info.name}"');
+        g.session.addSystem(tr.byRenamed(by, info.name));
       case GroupEffectKind.deleted:
         g.session.removeByModerator(e.messageId!, e.target!);
       case GroupEffectKind.rekeyed:
@@ -1162,14 +1163,14 @@ class ChatHub extends ChangeNotifier with WidgetsBindingObserver {
     // أنا في القوايم: العدّاد كفاية. في الخلفية أو جوه محادثة تانية: إشعار
     if (_foreground && _visible == null) return;
     final text = ChatSession.previewOf(m);
-    _notify(c, m.mentionsMe ? 'منشن ليك: $text' : text, sender: c.isGroup ? m.sender : null);
+    _notify(c, m.mentionsMe ? tr.mentionedYou(text) : text, sender: c.isGroup ? m.sender : null);
   }
 
   /// حد اتفاعل على رسالة ليّا.
   void _onReaction(Conversation c, ChatMessage m, String emoji, String? who) {
     if ((identical(_visible, c) && _foreground) || c.muted) return;
     if (_foreground && _visible == null) return;
-    _notify(c, 'تفاعل بـ $emoji على: "${ChatSession.previewOf(m)}"', sender: c.isGroup ? who : null);
+    _notify(c, tr.reactedOn(emoji, ChatSession.previewOf(m)), sender: c.isGroup ? who : null);
   }
 
   /// إشعار رسالة. لو قفل التطبيق متفعّل: من غير اسم ولا محتوى.

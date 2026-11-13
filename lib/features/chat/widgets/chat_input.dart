@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../../../widgets/feedback.dart';
 import '../../../widgets/focus_guard.dart';
 import '../../../widgets/ui.dart';
@@ -188,7 +189,7 @@ class ChatInputBarState extends State<ChatInputBar> {
     if (!allowed) {
       _starting = false;
       if (mounted) {
-        showToast(context, 'محتاجين إذن الميكروفون عشان نسجّل', error: true);
+        showToast(context, context.l10n.micNeededRecord, error: true);
       }
       return;
     }
@@ -201,7 +202,7 @@ class ChatInputBarState extends State<ChatInputBar> {
     _starting = false;
     if (!mounted) return;
     if (!ok) {
-      showToast(context, 'معرفناش نشغّل الميكروفون', error: true);
+      showToast(context, context.l10n.micStartFailed, error: true);
       return;
     }
     if (_downAt == null) {
@@ -264,13 +265,13 @@ class ChatInputBarState extends State<ChatInputBar> {
             const Duration(milliseconds: 700)) {
       await VoiceRecorder.cancel();
       if (mounted) {
-        showToast(context, 'اضغط على الميكروفون واستمر ضاغط عشان تسجّل');
+        showToast(context, context.l10n.holdToRecord);
       }
       return;
     }
     final clip = await VoiceRecorder.stop();
     if (clip == null) {
-      if (mounted) showToast(context, 'التسجيل مكملش — جرّب تاني', error: true);
+      if (mounted) showToast(context, context.l10n.recordFailed, error: true);
       return;
     }
     final error = await _session.sendMedia(
@@ -410,7 +411,7 @@ class ChatInputBarState extends State<ChatInputBar> {
                       emojiSizeMax: 30,
                       backgroundColor: p.surface,
                       noRecents: Text(
-                        'الإيموجي اللي بتستخدمها هتظهر هنا',
+                        context.l10n.emojiNoRecents,
                         style: TextStyle(color: p.textMuted, fontSize: 14),
                       ),
                     ),
@@ -430,7 +431,7 @@ class ChatInputBarState extends State<ChatInputBar> {
                     searchViewConfig: SearchViewConfig(
                       backgroundColor: p.surface,
                       buttonIconColor: p.textMuted,
-                      hintText: 'دوّر على إيموجي (بالإنجليزي)',
+                      hintText: context.l10n.emojiSearch,
                     ),
                     skinToneConfig: SkinToneConfig(
                       dialogBackgroundColor: p.surfaceAlt,
@@ -452,7 +453,7 @@ class ChatInputBarState extends State<ChatInputBar> {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         IconButton(
-          tooltip: _emoji ? 'الكيبورد' : 'إيموجي',
+          tooltip: _emoji ? context.l10n.keyboard : context.l10n.emoji,
           onPressed: enabled ? _toggleEmoji : null,
           icon: Icon(
             _emoji ? Icons.keyboard_rounded : Icons.emoji_emotions_outlined,
@@ -477,7 +478,7 @@ class ChatInputBarState extends State<ChatInputBar> {
             },
             style: const TextStyle(fontSize: 16, height: 1.35),
             decoration: InputDecoration(
-              hintText: enabled ? 'رسالة' : 'مستني الاتصال...',
+              hintText: enabled ? context.l10n.messageHint : context.l10n.waitingConnection,
               filled: false,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 13),
@@ -491,7 +492,7 @@ class ChatInputBarState extends State<ChatInputBar> {
         Transform.rotate(
           angle: -0.6,
           child: IconButton(
-            tooltip: 'مرفقات',
+            tooltip: context.l10n.attachments,
             onPressed: enabled
                 ? () => showAttachSheet(
                     context,
@@ -516,8 +517,8 @@ class ChatInputBarState extends State<ChatInputBar> {
                 : null,
             child: IconButton(
               tooltip: widget.link.supportsVideo
-                  ? 'صورة (اضغط مطولاً للفيديو)'
-                  : 'صورة',
+                  ? context.l10n.photoHoldVideo
+                  : context.l10n.photo,
               onPressed: enabled
                   ? () => sendFromCamera(
                       context,
@@ -544,7 +545,7 @@ class ChatInputBarState extends State<ChatInputBar> {
         children: [
           if (locked)
             IconButton(
-              tooltip: 'امسح',
+              tooltip: context.l10n.delete,
               onPressed: _cancelRecording,
               icon: Icon(Icons.delete_outline_rounded, color: p.danger),
             )
@@ -577,7 +578,7 @@ class ChatInputBarState extends State<ChatInputBar> {
                             color: p.textMuted,
                           ),
                           Text(
-                            'اسحب للإلغاء',
+                            context.l10n.slideToCancel,
                             style: TextStyle(
                               color: p.textMuted,
                               fontWeight: FontWeight.w600,

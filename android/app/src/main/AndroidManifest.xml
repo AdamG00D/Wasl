@@ -57,6 +57,7 @@
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:supportsRtl="true"
+        android:localeConfig="@xml/locales_config"
         tools:targetApi="s">
         <activity
             android:name=".MainActivity"

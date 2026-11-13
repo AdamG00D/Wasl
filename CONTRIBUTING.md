@@ -26,9 +26,12 @@ You don't need the signing key: the project builds with the debug key without it
 
 **Code**
 
-- The app's UI text and code comments are in Egyptian Arabic, short and friendly. If you can't write Arabic, write
-  English and say so in the PR — a maintainer will translate. Issues and PRs in English or Arabic are both fine.
-- The layout is RTL: use `EdgeInsetsDirectional` / `AlignmentDirectional` / `PositionedDirectional`.
+- UI text lives in `lib/l10n/app_ar.arb` (Egyptian Arabic, the template) and `lib/l10n/app_en.arb` — add every new
+  string to both and use it as `context.l10n.key` in widgets or `tr.key` elsewhere; `flutter gen-l10n` regenerates the
+  Dart code. Code comments are in Egyptian Arabic, short and friendly. If you can't write Arabic, write the English
+  text and say so in the PR — a maintainer will translate. Issues and PRs in English or Arabic are both fine.
+- The layout flips between RTL (Arabic) and LTR (English): use `EdgeInsetsDirectional` / `AlignmentDirectional` /
+  `PositionedDirectional`, never fixed left / right.
 - Colours only through `context.palette`. User messages via `showToast` (not `SnackBar`). Close the keyboard with
   `hideKeyboard()`.
 - Line width 120. Don't reformat files your change doesn't touch.
@@ -66,5 +69,6 @@ You don't need the signing key: the project builds with the debug key without it
 ## Not sure where to start?
 
 - Try the app on different phones and report anything that doesn't work (phone model and Android version matter).
-- Translation: the UI is Arabic only for now.
+- Translation: the UI is in Arabic and English. Another language means a new `lib/l10n/app_<code>.arb`, adding it to
+  `L10n.supported` and `L10n.resolve`, plus `android/app/src/main/res/values-<code>/strings.xml` for notifications.
 - The limitations listed in [SECURITY.md](SECURITY.md) — each one is a nice project if you enjoy cryptography.

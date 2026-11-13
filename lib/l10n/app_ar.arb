@@ -1,0 +1,954 @@
+{
+  "@@locale": "ar",
+  "confirm": "تأكيد",
+  "cancel": "إلغاء",
+  "ok": "حسناً",
+  "settingsTitle": "الإعدادات",
+  "stopSavingTitle": "توقف حفظ المحادثات؟",
+  "stopSavingBody": "المحادثات المحفوظة هتتمسح من تخزين الموبايل (ما عدا اللي اخترت تحفظها بنفسك من جوه المحادثة).",
+  "stopSavingConfirm": "وقّف الحفظ",
+  "savingOnToast": "المحادثات هتتحفظ على الموبايل (مشفّرة)",
+  "savingOffToast": "المحادثات مش هتتحفظ",
+  "lockOnToast": "القفل اتفعّل",
+  "lockOffToast": "القفل اتشال",
+  "bioConfirmTitle": "تأكيد البصمة",
+  "bioConfirmSubtitle": "عشان تفتح Wasl بيها",
+  "wipeTitle": "مسح كل المحادثات؟",
+  "wipeBody": "كل الرسايل والملفات المحفوظة هتتمسح من موبايلك نهائياً. بروفايلك والجروبات اللي إنت فيها هيفضلوا.",
+  "wipeConfirm": "امسح الكل",
+  "wipeDone": "اتمسح كل حاجة",
+  "blockedTitle": "المحظورين",
+  "blockedEmpty": "مفيش حد محظور.",
+  "blockedNone": "مفيش حد",
+  "personShort": "شخص ({id})",
+  "@personShort": {
+    "placeholders": {
+      "id": {
+        "type": "Object"
+      }
+    }
+  },
+  "unblock": "إلغاء الحظر",
+  "editProfileHint": "تعديل الاسم والصورة واللون",
+  "privacy": "الخصوصية",
+  "saveChats": "حفظ المحادثات على الموبايل",
+  "saveChatsOn": "الرسايل بتتحفظ مشفّرة وبتلاقيها لما تفتح التطبيق تاني.",
+  "saveChatsOff": "مقفول: المحادثات بتتمسح لما تقفل التطبيق. تقدر تحفظ محادثة معينة من جواها.",
+  "appLock": "قفل التطبيق برقم سري",
+  "appLockOn": "متفعّل — اضغط عشان تشيله",
+  "appLockOff": "اختياري. من غيره التطبيق بيفتح على طول.",
+  "unlockWithFingerprint": "فتح بالبصمة",
+  "autoLock": "القفل التلقائي",
+  "autoLockSub": "بعد ما تسيب التطبيق",
+  "lockNow": "على طول",
+  "lockMinute": "دقيقة",
+  "lock5": "5 دقايق",
+  "lock15": "15 دقيقة",
+  "wipeAll": "مسح كل المحادثات",
+  "appearance": "المظهر",
+  "themeAuto": "تلقائي",
+  "themeLight": "فاتح",
+  "themeDark": "غامق",
+  "appColor": "لون التطبيق",
+  "language": "اللغة",
+  "languageAuto": "تلقائي",
+  "languageAutoHint": "تلقائي: زي لغة الموبايل (عربي لو الموبايل عربي، غير كده إنجليزي).",
+  "about": "عن التطبيق",
+  "aboutTagline": "شات من غير إنترنت • مفتوح المصدر ({license})",
+  "@aboutTagline": {
+    "placeholders": {
+      "license": {
+        "type": "Object"
+      }
+    }
+  },
+  "sourceCode": "الكود على GitHub",
+  "linkCopied": "اتنسخ اللينك",
+  "noBrowser": "مفيش متصفح يفتح اللينك — اتنسخ بداله",
+  "howItWorks": "إزاي Wasl بيشتغل؟",
+  "howItWorksSub": "من غير إنترنت ومن غير سيرفر",
+  "howNoInternetTitle": "من غير إنترنت ولا سيرفر",
+  "howNoInternetBody": "الموبايلات بتكلم بعض مباشرة بالبلوتوث أو على نفس الواي فاي / الهوت سبوت. مفيش حساب ولا رقم موبايل.",
+  "howMeshTitle": "شبكة Mesh",
+  "howMeshBody": "كل موبايل عليه Wasl بيوصّل للي حواليه، فرسالتك تقدر تعدّي على كذا موبايل لحد ما توصل لحد بعيد عنك.",
+  "howEncryptionTitle": "تشفير تلقائي",
+  "howEncryptionBody": "الشات الخاص مشفّر من طرف لطرف بمفاتيح بتتولّد لوحدها — من غير كلمة سر. الموبايلات اللي في النص بتوصّل بس ومبتقراش حاجة.",
+  "howBothTitle": "الاتنين مع بعض",
+  "howBothBody": "لو شغّلت الواي فاي والبلوتوث سوا موبايلك بيبقى كوبري: اللي على هوت سبوت يوصل للي على هوت سبوت تاني عن طريق البلوتوث. المكالمات والفيديو بيفضلوا جوه نفس الشبكة.",
+  "howGroupsTitle": "الجروبات",
+  "howGroupsBody": "عام: أي حد قريب يدخل ويقرا. بكلمة سر أو بطلب انضمام: محدش يقرا غير الأعضاء. الجروب بيفضل ظاهر طول ما فيه عضو قريب.",
+  "howAdminTitle": "إدارة الجروب",
+  "howAdminBody": "صاحب الجروب بيعيّن مديرين، والمدير يشيل أعضاء ويمسح رسايلهم. في جروب \"بطلب انضمام\" المفتاح بيتغير لما حد يتشال فمبيقراش الجديد؛ في العام وبكلمة السر الإزالة حظر بتطبّقه التطبيقات.",
+  "howNotifTitle": "الإشعارات",
+  "howNotifBody": "الإشعار فيه اسم اللي بعت ونص الرسالة. لو مفعّل قفل التطبيق بيبقى \"رسالة جديدة\" بس، وعلى شاشة قفل الموبايل النص مبيظهرش أبداً. تقدر تكتم أي محادثة.",
+  "howSaveTitle": "الحفظ اختياري",
+  "howSaveBody": "الافتراضي إن المحادثات مبتتحفظش وبتتمسح مع قفل التطبيق. لو فعّلت الحفظ بتتخزن مشفّرة على موبايلك بس.",
+  "howSafetyTitle": "رمز الأمان",
+  "howSafetyBody": "لو عايز تتأكد 100% إنك بتكلم الشخص الصح، قارنوا رمز الأمان (6 أرقام) من قايمة المحادثة. اختياري.",
+  "pinWrong": "الرقم غلط",
+  "pinMismatch": "الرقمين مش زي بعض — ابدأ تاني",
+  "pinEnterCurrent": "اكتب الرقم السري الحالي",
+  "pinChoose": "اختار رقم سري (4 لـ 8 أرقام)",
+  "pinRepeat": "اكتبه تاني للتأكيد",
+  "colorIndigo": "نيلي",
+  "colorTeal": "فيروزي",
+  "colorEmerald": "أخضر",
+  "colorCoral": "مرجاني",
+  "colorAmber": "كهرماني",
+  "colorSky": "سماوي",
+  "colorPink": "وردي",
+  "colorGraphite": "رمادي",
+  "errRejectedTitle": "الطرف التاني رفض الاتصال",
+  "errRejectedHint": "اطلب منه يقبل الطلب لما يظهر عنده، وجرّب تاني.",
+  "errPeerGoneTitle": "الجهاز التاني مش ظاهر دلوقتي",
+  "errPeerGoneHint": "اتأكد إنه لسه فاتح شاشة الدردشة وقريب منك (أقل من 10 متر تقريباً).",
+  "errReconnectTitle": "معرفناش نرجّع الاتصال",
+  "errReconnectHint": "غالباً الجهاز التاني بعد أو قفل الشاشة. افتحوا الدردشة على الجهازين وابدأوا تاني.",
+  "errNoNetworkTitle": "مش متوصل بأي شبكة",
+  "errNoNetworkHint": "شغّل الواي فاي واتوصل بشبكة، أو افتح نقطة اتصال (Hotspot) من الإعدادات وخلّي التاني يتوصل بيها.",
+  "errHandshakeTitle": "معرفناش نأمّن الاتصال",
+  "errHandshakeHint": "حصل خطأ أثناء تبادل مفاتيح التشفير. تأكد إن الجهازين عليهم آخر نسخة من Wasl وجرّب تاني.",
+  "errNoPlayTitle": "الدردشة القريبة محتاجة خدمات Google Play",
+  "errNoPlayHint": "الجهاز ده مفيهوش خدمات Google أو محتاجة تحديث. حدّث \"خدمات Google Play\" من المتجر، أو استخدم الدردشة عبر الواي فاي.",
+  "errPermissionTitle": "ناقص إذن",
+  "errPermissionHint": "التطبيق محتاج إذن \"الأجهزة القريبة\" عشان يلاقي الجهاز التاني. اسمح بيه وجرّب تاني.",
+  "errRadioTitle": "البلوتوث أو الواي فاي مش مستجيب",
+  "errRadioHint": "اقفل البلوتوث وافتحه تاني (ولو ينفع الواي فاي كمان)، وبعدين جرّب. لو المشكلة استمرت اعمل ريستارت للموبايل.",
+  "errAlreadyConnectedTitle": "فيه اتصال قديم لسه مفتوح",
+  "errAlreadyConnectedHint": "اقفل شاشة الدردشة على الجهازين وافتحها تاني.",
+  "errTimeoutTitle": "الاتصال أخد وقت أطول من اللازم",
+  "errTimeoutHint": "قرّب الجهازين من بعض وجرّب تاني.",
+  "errGenericTitle": "حصلت مشكلة في الاتصال",
+  "errGenericHint": "جرّب تقفل الدردشة وتفتحها تاني على الجهازين. لو المشكلة فضلت، اقفل البلوتوث وافتحه.",
+  "errRefusedTitle": "الجهاز التاني مش مستني اتصال",
+  "errRefusedHint": "اتأكد إنه داس \"استضافة\" وإن العنوان مكتوب صح.",
+  "errNoReplyTitle": "مفيش رد من العنوان ده",
+  "errNoReplyHint": "الجهازين لازم يكونوا على نفس شبكة الواي فاي (أو واحد فاتح Hotspot والتاني متوصل بيه). بعض الراوترات العامة بتمنع الأجهزة تكلم بعض.",
+  "errUnreachableTitle": "مش متوصل بشبكة",
+  "errUnreachableHint": "شغّل الواي فاي واتوصل بنفس الشبكة اللي عليها الجهاز التاني.",
+  "errFailedTitle": "تعذّر الاتصال",
+  "errFailedHint": "اتأكد من العنوان وإن الجهازين على نفس الشبكة.",
+  "errLanStartTitle": "معرفناش نبدأ على الشبكة",
+  "errLanStartHint": "اقفل التطبيق وافتحه تاني. لو المشكلة فضلت اعمل ريستارت للواي فاي.",
+  "copiedSecure": "تم النسخ — هيتمسح من الحافظة بعد 30 ثانية",
+  "notDelivered": "موصلتش",
+  "lockBioTitle": "افتح Wasl",
+  "lockBioSubtitle": "بصمتك بدل الرقم السري",
+  "lockIncomingCall": "مكالمة واردة — افتح القفل",
+  "lockEnterPin": "اكتب الرقم السري",
+  "lockWrongPin": "الرقم غلط — جرّب تاني",
+  "unknownName": "مجهول",
+  "otherSide": "الطرف الآخر",
+  "hello": "أهلاً",
+  "transportHeadline": "هتتكلم\nإزاي النهارده؟",
+  "transportSub": "من غير إنترنت في الحالتين، وكل حاجة مشفّرة.",
+  "bluetooth": "بلوتوث",
+  "bluetoothDesc": "للناس القريبة منك من غير أي شبكة. الرسايل بتعدّي من موبايل لموبايل فبتوصل لأبعد.",
+  "tagNoNetwork": "من غير شبكة",
+  "wifi": "واي فاي",
+  "wifiDesc": "نفس الواي فاي أو هوت سبوت من موبايل. أسرع بكتير، وفيه فيديو ومكالمات صوت وصورة.",
+  "tagFaster": "أسرع",
+  "tagCalls": "مكالمات",
+  "tagVideo": "فيديو",
+  "both": "الاتنين مع بعض",
+  "bothDesc": "موبايلك يبقى كوبري: يوصّل اللي على الواي فاي أو الهوت سبوت باللي على البلوتوث، فكذا شبكة تبقى شبكة واحدة.",
+  "tagBridge": "كوبري",
+  "tagRange": "أوسع مدى",
+  "tagBattery": "بطارية أكتر",
+  "photoUnusable": "معرفناش نستخدم الصورة دي — جرّب صورة تانية",
+  "galleryFailed": "معرفناش نفتح المعرض",
+  "nameTooShort": "اكتب اسم من حرفين على الأقل",
+  "profileSaveFailed": "معرفناش نحفظ البروفايل",
+  "profile": "البروفايل",
+  "appTitle": "وَصْل",
+  "createProfile": "اعمل بروفايلك",
+  "createProfileSub": "اسم وصورة يشوفهم الناس اللي حواليك. من غير رقم موبايل ولا إيميل ولا إنترنت — كل حاجة على موبايلك بس.",
+  "removePhoto": "شيل الصورة",
+  "yourName": "اسمك",
+  "profileColor": "لون البروفايل",
+  "orCartoon": "أو اختار أفاتار كرتوني",
+  "letsStart": "يلا نبدأ",
+  "save": "حفظ",
+  "reqNearbyTitle": "إذن الأجهزة القريبة",
+  "reqNearbyWhy": "عشان Wasl يلاقي الموبايلات القريبة ويتصل بيها بالبلوتوث. مش بيستخدم موقعك.",
+  "reqWifiTitle": "إذن أجهزة الواي فاي القريبة",
+  "reqWifiWhy": "بيخلي الرسايل تتنقل أسرع بالواي فاي المباشر لما الجهازين قريبين.",
+  "reqLocationTitle": "إذن الموقع",
+  "reqLocationWhy": "أندرويد {version} بيشترط إذن الموقع لأي بحث عن أجهزة قريبة. Wasl مش بيقرا موقعك ولا بيحفظه.",
+  "@reqLocationWhy": {
+    "placeholders": {
+      "version": {
+        "type": "Object"
+      }
+    }
+  },
+  "android11OrOlder": "11 وأقدم",
+  "reqBluetoothTitle": "تشغيل البلوتوث",
+  "reqBluetoothWhy": "الجهازين بيلاقوا بعض عن طريق البلوتوث.",
+  "reqGpsTitle": "تشغيل خدمة الموقع (GPS)",
+  "reqGpsWhy": "في الإصدار ده من أندرويد البحث عن الأجهزة مش بيشتغل غير والموقع شغال.",
+  "openSettings": "افتح الإعدادات",
+  "allow": "اسمح",
+  "turnOn": "شغّل",
+  "callIncomingVideo": "مكالمة فيديو واردة",
+  "callIncomingVoice": "مكالمة صوتية واردة",
+  "callRinging": "بيرن...",
+  "callConnecting": "جاري التوصيل...",
+  "callEnded": "المكالمة خلصت",
+  "cameraOff": "الكاميرا مقفولة",
+  "me": "أنا",
+  "e2eEncrypted": "مشفّرة من طرف لطرف",
+  "decline": "رفض",
+  "accept": "قبول",
+  "flipCamera": "قلب الكاميرا",
+  "camera": "الكاميرا",
+  "mute": "كتم",
+  "muted": "مكتوم",
+  "speaker": "السماعة",
+  "earpiece": "الأذن",
+  "callBusy": "فيه مكالمة شغالة بالفعل",
+  "notConnectedNow": "مش متصل دلوقتي",
+  "callNoAnswer": "مفيش رد",
+  "callConnectFailed": "معرفناش نوصّل المكالمة",
+  "callStartFailed": "معرفناش نشغّل المكالمة",
+  "callMediaFailed": "معرفناش نشغّل الميكروفون/الكاميرا",
+  "callRejected": "اترفضت",
+  "callMissed": "فاتتك مكالمة",
+  "callPeerRejected": "الطرف التاني رفض المكالمة",
+  "callPeerBusy": "الطرف التاني في مكالمة تانية",
+  "callPeerHungUp": "الطرف التاني قفل المكالمة",
+  "callProblem": "حصلت مشكلة في المكالمة",
+  "callIceFailed": "الاتصال فشل — اتأكدوا إنكم على نفس الشبكة",
+  "micDeniedForever": "إذن الميكروفون مرفوض — فعّله من إعدادات التطبيق",
+  "micNeededCall": "محتاجين إذن الميكروفون عشان المكالمة",
+  "camDeniedForever": "إذن الكاميرا مرفوض — فعّله من إعدادات التطبيق",
+  "camNeededCall": "محتاجين إذن الكاميرا عشان مكالمة الفيديو",
+  "callDropped": "الاتصال قطع",
+  "chatEnded": "المحادثة انتهت",
+  "micNeededRecord": "محتاجين إذن الميكروفون عشان نسجّل",
+  "micStartFailed": "معرفناش نشغّل الميكروفون",
+  "holdToRecord": "اضغط على الميكروفون واستمر ضاغط عشان تسجّل",
+  "recordFailed": "التسجيل مكملش — جرّب تاني",
+  "emojiNoRecents": "الإيموجي اللي بتستخدمها هتظهر هنا",
+  "emojiSearch": "دوّر على إيموجي (بالإنجليزي)",
+  "keyboard": "الكيبورد",
+  "emoji": "إيموجي",
+  "messageHint": "رسالة",
+  "waitingConnection": "مستني الاتصال...",
+  "attachments": "مرفقات",
+  "photoHoldVideo": "صورة (اضغط مطولاً للفيديو)",
+  "photo": "صورة",
+  "delete": "امسح",
+  "slideToCancel": "اسحب للإلغاء",
+  "theOtherSide": "الطرف التاني",
+  "forwarded": "محوّلة",
+  "edited": "معدّلة",
+  "you": "انت",
+  "compareSafety": "قارن رمز الأمان مع {name}",
+  "@compareSafety": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "compareSafetyHint": "تأكيد إضافي (اختياري): لو نفس الرقم ظاهر على الموبايل التاني يبقى متأكدين ١٠٠٪ إن محدش في النص.",
+  "different": "مختلف",
+  "matches": "متطابق",
+  "attachDocument": "مستند",
+  "attachCamera": "كاميرا",
+  "attachGallery": "المعرض",
+  "attachAudio": "صوت",
+  "videoWifiOnlyHint": "الفيديو متاح في دردشة الواي فاي / الهوت سبوت (البلوتوث أبطأ من كده).",
+  "video": "فيديو",
+  "videoWifiOnly": "الفيديو متاح في دردشة الواي فاي بس",
+  "cameraPermission": "محتاجين إذن الكاميرا — فعّله من إعدادات التطبيق",
+  "cameraFailed": "معرفناش نفتح الكاميرا",
+  "videoWifiOnlyPhotosSent": "الفيديو متاح في دردشة الواي فاي بس — اتبعتت الصور بس",
+  "videoCompressFailed": "معرفناش نضغط الفيديو — هيتبعت زي ما هو",
+  "preparingVideo": "بنجهّز الفيديو",
+  "preparingVideoBody": "بنصغّره عشان يشتغل على أي موبايل ويتبعت أسرع.",
+  "filesFailed": "معرفناش نفتح الملفات",
+  "fileTooBig": "الملف أكبر من {size}",
+  "@fileTooBig": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "readFileFailed": "معرفناش نقرا الملف",
+  "sendFailedRetry": "موصلش — ابعته تاني",
+  "fileIncomplete": "الملف موصلش كامل",
+  "file": "ملف",
+  "waitingReconnectPct": "مستني الاتصال يرجع... {pct}%",
+  "@waitingReconnectPct": {
+    "placeholders": {
+      "pct": {
+        "type": "Object"
+      }
+    }
+  },
+  "pctOfSize": "{pct}% من {size}",
+  "@pctOfSize": {
+    "placeholders": {
+      "pct": {
+        "type": "Object"
+      },
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "waitingConnectionPct": "مستني الاتصال... {pct}%",
+  "@waitingConnectionPct": {
+    "placeholders": {
+      "pct": {
+        "type": "Object"
+      }
+    }
+  },
+  "cancelSending": "إلغاء الإرسال",
+  "cancelReceiving": "إلغاء الاستلام",
+  "saveToDownloads": "حفظ في التنزيلات",
+  "noAppToOpen": "مفيش تطبيق على الموبايل يفتح النوع ده — احفظه أو شاركه",
+  "storagePermission": "محتاجين إذن التخزين عشان نحفظ الملف",
+  "savedToDownloads": "اتحفظ في التنزيلات ← Wasl",
+  "saveFileFailed": "معرفناش نحفظ الملف",
+  "tapToOpen": "اضغط عشان تفتحه",
+  "photosPermission": "محتاجين إذن الوصول للصور",
+  "savedToGallery": "اتحفظ في المعرض",
+  "openWithOtherApp": "افتح بتطبيق تاني",
+  "saveToGallery": "حفظ في المعرض",
+  "share": "مشاركة",
+  "videoCantPlay": "الفيديو وصل سليم، بس المشغّل اللي جوه التطبيق مش قادر يشغّل النوع ده.",
+  "saveItToGallery": "احفظه في المعرض",
+  "groupNobodyReachable": "مفيش حد من الجروب واصلين له دلوقتي",
+  "videoWifiOnlyShort": "الفيديو متاح في الواي فاي بس",
+  "fileEmpty": "الملف فاضي",
+  "notAValidVideo": "الملف ده مش فيديو سليم — اختاره تاني من المعرض",
+  "groupMaxSize": "أقصى حجم في الجروبات {size}",
+  "@groupMaxSize": {
+    "placeholders": {
+      "size": {
+        "type": "Object"
+      }
+    }
+  },
+  "sendFileFailed": "معرفناش نبعت الملف",
+  "connectionStoppedEarly": "الاتصال وقف قبل ما يكمل",
+  "memberJoined": "{name} دخل الجروب",
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "memberLeft": "{name} خرج من الجروب",
+  "@memberLeft": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "arrivedIncomplete": "وصل ناقص",
+  "arrivedCorrupt": "وصل مختلف عن الأصلي",
+  "sendingStoppedEarly": "الإرسال وقف قبل ما يكمل",
+  "joinAccepted": "اتقبلت في \"{group}\" 🎉",
+  "@joinAccepted": {
+    "placeholders": {
+      "group": {
+        "type": "Object"
+      }
+    }
+  },
+  "joinRejected": "طلبك لدخول \"{group}\" اترفض",
+  "@joinRejected": {
+    "placeholders": {
+      "group": {
+        "type": "Object"
+      }
+    }
+  },
+  "leaveTitle": "تقفل الاتصال؟",
+  "leaveBodyUnsaved": "هتبقى مش ظاهر للناس، والمحادثات اللي مش محفوظة هتتمسح.",
+  "leaveBody": "هتبقى مش ظاهر للناس لحد ما تدخل تاني.",
+  "disconnect": "اقفل",
+  "newChat": "محادثة جديدة",
+  "newGroup": "جروب جديد",
+  "tabChats": "المحادثات",
+  "tabGroups": "الجروبات",
+  "tabNearby": "القريبين",
+  "back": "رجوع",
+  "preparing": "بنجهّز...",
+  "searchingPeople": "بندوّر على ناس حواليك",
+  "peopleNearby": "{count, plural, =1{{count} شخص قريب} =2{{count} أشخاص قريبين} few{{count} أشخاص قريبين} other{{count} شخص قريب}}",
+  "@peopleNearby": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tryAgain": "حاول تاني",
+  "openWifi": "افتح الواي فاي",
+  "yesterday": "أمس",
+  "unpin": "إلغاء التثبيت",
+  "pin": "تثبيت فوق",
+  "unmuteNotifications": "إلغاء كتم الإشعارات",
+  "muteNotifications": "كتم الإشعارات",
+  "unsaveChat": "إلغاء حفظ المحادثة",
+  "saveChat": "حفظ المحادثة على الموبايل",
+  "leaveGroup": "الخروج من الجروب",
+  "deleteChat": "حذف المحادثة",
+  "chatSavedToast": "المحادثة بتتحفظ على الموبايل",
+  "chatUnsavedToast": "المحادثة مبقتش بتتحفظ",
+  "leaveGroupTitle": "الخروج من \"{name}\"؟",
+  "@leaveGroupTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteChatTitle": "حذف المحادثة مع {name}؟",
+  "@deleteChatTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "messagesErasedBody": "الرسايل هتتمسح من موبايلك.",
+  "leave": "خروج",
+  "deleteAction": "حذف",
+  "typing": "بيكتب...",
+  "nameTyping": "{name} بيكتب...",
+  "@nameTyping": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "groupOfMode": "جروب {mode}",
+  "@groupOfMode": {
+    "placeholders": {
+      "mode": {
+        "type": "Object"
+      }
+    }
+  },
+  "tapToStart": "اضغط وابدأ الكلام",
+  "youPrefix": "إنت: {text}",
+  "@youPrefix": {
+    "placeholders": {
+      "text": {
+        "type": "Object"
+      }
+    }
+  },
+  "noChatsTitle": "لسه مفيش محادثات",
+  "noChatsBody": "اختار حد أو جروب من القريبين وابدأ الكلام. التشفير بيتعمل تلقائي من غير كلمة سر.",
+  "startNewChat": "ابدأ محادثة جديدة",
+  "noGroupsTitle": "مفيش جروبات حواليك",
+  "noGroupsBody": "اعمل جروب عام لأي حد قريب، أو خاص بكلمة سر أو بموافقتك. الجروب بيظهر للكل طول ما فيه عضو قريب.",
+  "createGroup": "اعمل جروب",
+  "myGroups": "جروباتي",
+  "groupsAround": "جروبات حواليك",
+  "groupsAroundCount": "جروبات حواليك ({count})",
+  "@groupsAroundCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "membersNearby": "{count, plural, =1{{count} عضو قريب} other{{count} أعضاء قريبين}}",
+  "@membersNearby": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "waiting": "مستني",
+  "requestJoin": "اطلب",
+  "join": "ادخل",
+  "ipFormat": "اكتب العنوان بالشكل ده: 192.168.1.5",
+  "ipConnected": "اتوصلنا — هيظهر في القايمة دلوقتي",
+  "searchWifiHint": "أي حد فاتح Wasl على نفس الواي فاي (أو متوصل بالهوت سبوت بتاعك) هيظهر هنا لوحده.",
+  "searchBtHint": "أي حد قريب فاتح Wasl على البلوتوث هيظهر هنا لوحده. البحث بياخد من ثواني لدقيقة.",
+  "peopleTapToTalk": "أشخاص — اضغط على أي حد عشان تكلمه ({count})",
+  "@peopleTapToTalk": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "meshHint": "الأجهزة بتوصّل لبعض: ممكن تكلم حد بعيد عنك عن طريق موبايلات في النص، ومحدش منهم يقدر يقرا رسايلك.",
+  "connectByAddress": "اتصال بالعنوان",
+  "connectByAddressHint": "لو الشبكة مانعة الاكتشاف التلقائي (زي بعض شبكات الكافيهات). عنوانك: {addresses}",
+  "@connectByAddressHint": {
+    "placeholders": {
+      "addresses": {
+        "type": "Object"
+      }
+    }
+  },
+  "listSeparator": " ، ",
+  "otherDeviceAddress": "عنوان الجهاز التاني",
+  "connect": "اتصل",
+  "someoneMissing": "حد مش ظاهر؟ اتصل بعنوانه",
+  "connectedDirectly": "متصل بيك مباشرة",
+  "viaRelays": "عن طريق {count, plural, =1{جهاز واحد} =2{جهازين} other{{count} أجهزة}} في النص",
+  "@viaRelays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "oneStepTitle": "خطوة واحدة قبل ما نبدأ",
+  "oneStepBody": "البلوتوث بيشتغل من غير إنترنت، وعشان الموبايلات تلاقي بعض محتاجين الحاجات دي:",
+  "permissionBlockedHint": "الإذن ده اترفض قبل كده — فعّله من الإعدادات ← الأذونات.",
+  "modeOpen": "عام",
+  "modePassword": "بكلمة سر",
+  "modeAsk": "بطلب انضمام",
+  "groupNameNeeded": "اكتب اسم للجروب",
+  "passwordTooShort": "كلمة السر 4 حروف على الأقل",
+  "createGroupFailed": "معرفناش نعمل الجروب",
+  "modeOpenExplain": "أي حد قريب يشوف الجروب ويدخل على طول.",
+  "modePasswordExplain": "الجروب ظاهر، بس محدش يدخل ولا يقرا غير اللي معاه كلمة السر.",
+  "modeAskExplain": "اللي عايز يدخل يبعتلك طلب، وإنت توافق أو ترفض.",
+  "groupName": "اسم الجروب",
+  "groupPassword": "كلمة سر الجروب",
+  "createGroupButton": "إنشاء الجروب",
+  "joinGroupFailed": "معرفناش ندخل الجروب",
+  "requestPendingTitle": "الطلب لسه مستني",
+  "requestPendingBody": "صاحب الجروب لسه مردّش على طلبك.",
+  "cancelRequest": "إلغاء الطلب",
+  "keepWaiting": "هستنى",
+  "requestJoinTitle": "طلب انضمام لـ \"{name}\"",
+  "@requestJoinTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "requestJoinBody": "هنبعت طلب لصاحب الجروب، وأول ما يوافق هتدخل تلقائياً.",
+  "sendRequest": "ابعت الطلب",
+  "requestSent": "الطلب اتبعت — مستنيين الموافقة",
+  "privateGroupPassword": "الجروب ده خاص — اكتب كلمة السر عشان تدخل.",
+  "password": "كلمة السر",
+  "enter": "دخول",
+  "roleOwner": "صاحب الجروب",
+  "roleAdmin": "مدير",
+  "member": "عضو",
+  "onlineNow": "متصل دلوقتي",
+  "privateMessage": "رسالة خاصة",
+  "privateMessageSub": "مشفّرة بينكم انتوا الاتنين بس",
+  "voiceCall": "مكالمة صوتية",
+  "mention": "منشن",
+  "removeAdmin": "شيله من الإدارة",
+  "makeAdmin": "خليه مدير",
+  "removeFromGroup": "شيله من الجروب",
+  "unban": "رجّعه للجروب",
+  "block": "حظر",
+  "blockSub": "مش هتشوف رسايله في أي مكان",
+  "kickTitle": "تشيل {name} من الجروب؟",
+  "@kickTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "kickAsk": "مفتاح الجروب هيتغير، فمش هيقدر يقرا أي رسالة جديدة ولا يدخل تاني غير بموافقة.",
+  "kickPassword": "رسايله مش هتظهر لحد ومش هيقدر يبعت. بس هو لسه عارف كلمة السر — لو عايز تمنعه يقرا خالص اعمل جروب جديد بكلمة تانية.",
+  "kickOpen": "رسايله مش هتظهر لحد ومش هيقدر يبعت. الجروب العام أي حد قريب يقدر يقراه.",
+  "kickConfirm": "شيله",
+  "kicked": "{name} اتشال من الجروب",
+  "@kicked": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "unbanned": "{name} يقدر يدخل الجروب تاني",
+  "@unbanned": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "blockTitle": "حظر {name}؟",
+  "@blockTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "blockBody": "مش هيقدر يبعتلك رسايل ولا هتشوف رسايله في الجروبات. تقدر تلغي الحظر من الإعدادات.",
+  "groupInfo": "معلومات الجروب",
+  "notInGroup": "مبقتش في الجروب ده",
+  "rename": "تغيير الاسم",
+  "youOwnIt": "إنت صاحبه",
+  "ownedBy": "صاحبه {name}",
+  "@ownedBy": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "joinRequests": "طلبات انضمام ({count})",
+  "@joinRequests": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "removedBefore": "اتشال من الجروب قبل كده",
+  "onlineCount": "متصلين دلوقتي ({count})",
+  "@onlineCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "youName": "إنت",
+  "ownerHint": "اضغط على أي عضو: رسالة خاصة، تخليه مدير، أو تشيله من الجروب. إنت صاحب الجروب ومحدش يقدر يشيلك.",
+  "adminHint": "إنت مدير: تقدر تشيل الأعضاء، تمسح رسايلهم، وتغيّر اسم الجروب.",
+  "memberHint": "اضغط على أي عضو عشان تكلمه شات خاص — مشفّر بينكم انتوا الاتنين بس، حتى باقي الجروب مش بيشوفه.",
+  "bannedCount": "اتشالوا من الجروب ({count})",
+  "@bannedCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "letBack": "رجّعه",
+  "groupMessagesErased": "رسايل الجروب هتتمسح من موبايلك.",
+  "callStartNow": "معرفناش نبدأ المكالمة دلوقتي",
+  "messageGone": "الرسالة دي مبقتش موجودة",
+  "noForwardTarget": "مفيش محادثة متصلة دلوقتي تحوّل ليها",
+  "forwardTo": "تحويل لـ",
+  "group": "جروب",
+  "privateChat": "محادثة خاصة",
+  "forwardedTo": "اتحوّلت لـ {name}",
+  "@forwardedTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "statusSending": "بتتبعت...",
+  "statusSentGroup": "اتبعتت",
+  "statusSent": "اتبعتت ولسه موصلتش",
+  "statusDeliveredGroup": "حد قراها",
+  "statusDelivered": "وصلت",
+  "statusReadGroup": "كل المتصلين قروها",
+  "statusRead": "اتقرت",
+  "statusFailed": "متبعتتش",
+  "messageInfo": "معلومات الرسالة",
+  "readByCount": "قروها ({count})",
+  "@readByCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "nobodyYet": "لسه محدش",
+  "onlineNotReadCount": "متصلين ولسه مقروهاش ({count})",
+  "@onlineNotReadCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "codeMismatchTitle": "الرمز مختلف؟",
+  "codeMismatchBody": "ده معناه إن ممكن حد منتحل شخصية الطرف التاني. متبعتش حاجة حساسة، واحظره من القايمة لو مش متأكد منه.",
+  "unsaveChatTitle": "إلغاء حفظ المحادثة؟",
+  "unsaveChatBody": "الرسايل هتتمسح من تخزين الموبايل، وهتفضل قدامك لحد ما تقفل التطبيق بس.",
+  "unsaveConfirm": "إلغاء الحفظ",
+  "chatSavedEncryptedToast": "المحادثة بتتحفظ على الموبايل (مشفّرة)",
+  "clearTitle": "مسح الرسايل؟",
+  "clearBody": "الرسايل هتتمسح من عندك بس.",
+  "clear": "مسح",
+  "blockDirectBody": "مش هيقدر يبعتلك رسايل ولا هيظهر في القريبين. تقدر تلغي الحظر من الإعدادات.",
+  "deleteChatQ": "حذف المحادثة؟",
+  "deleteChatBody": "المحادثة ورسايلها هتتمسح من موبايلك.",
+  "otherEmoji": "إيموجي تاني",
+  "reply": "رد",
+  "forward": "تحويل",
+  "copy": "نسخ",
+  "privateMessageTo": "رسالة خاصة لـ {name}",
+  "@privateMessageTo": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "mentionName": "منشن لـ {name}",
+  "@mentionName": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "edit": "تعديل",
+  "deleteForBoth": "حذف عندي وعنده",
+  "deleteForAll": "حذف عند الكل",
+  "deleteForAllAdmin": "حذف عند الكل (إنت مدير)",
+  "deleteForMe": "حذف عندي بس",
+  "editMessage": "تعديل الرسالة",
+  "typingOne": "{name} بيكتب",
+  "@typingOne": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "typingTwo": "{a} و{b} بيكتبوا",
+  "@typingTwo": {
+    "placeholders": {
+      "a": {
+        "type": "Object"
+      },
+      "b": {
+        "type": "Object"
+      }
+    }
+  },
+  "typingMany": "{count} بيكتبوا",
+  "@typingMany": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "chatClosed": "المحادثة اتقفلت",
+  "noMembersNearby": "مفيش حد من الأعضاء قريب دلوقتي",
+  "membersOnline": "{count, plural, =1{{count} عضو متصلين دلوقتي} other{{count} أعضاء متصلين دلوقتي}}",
+  "@membersOnline": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "blocked": "محظور",
+  "encryptedVerified": "مشفّرة • الرمز متأكد",
+  "securing": "بنأمّن الاتصال...",
+  "connecting": "جاري الاتصال...",
+  "videoCall": "مكالمة فيديو",
+  "joinRequestsTooltip": "طلبات انضمام",
+  "searchChat": "بحث في المحادثة",
+  "membersAndInfo": "الأعضاء ومعلومات الجروب",
+  "safetyCodeOptional": "رمز الأمان (اختياري)",
+  "clearMessages": "مسح الرسايل",
+  "peerOfflineWifi": "{name} مش على الشبكة دلوقتي. أول ما يفتح التطبيق على نفس الواي فاي هتقدر تكلمه.",
+  "@peerOfflineWifi": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "peerOfflineBt": "{name} مش قريب دلوقتي. أول ما يقرب ويفتح التطبيق هتقدر تكلمه.",
+  "@peerOfflineBt": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "noDeviceNearby": "مفيش أي جهاز قريب دلوقتي — الرسايل بتتبعت لما يبقى فيه حد واصلين له.",
+  "cancelSendingQ": "إلغاء الإرسال؟",
+  "cancelReceivingQ": "إلغاء الاستلام؟",
+  "cancelSendingBody": "الملف هيتشال من المحادثة عندك وعند الطرف التاني.",
+  "cancelReceivingBody": "الملف هيتشال من عندك ومش هيكمّل.",
+  "cancelTransfer": "إلغاء النقل",
+  "notificationsBack": "الإشعارات رجعت للمحادثة دي",
+  "muteHour": "ساعة",
+  "mute8Hours": "8 ساعات",
+  "muteWeek": "أسبوع",
+  "muteAlways": "دايماً",
+  "mutedGroupToast": "اتكتم — المنشن بس هو اللي هيبعتلك إشعار",
+  "mutedToast": "إشعارات المحادثة دي اتكتمت",
+  "closeSearch": "قفل البحث",
+  "searchInChat": "دوّر في المحادثة",
+  "none": "مفيش",
+  "older": "الأقدم",
+  "newer": "الأحدث",
+  "startGroupTalk": "ابدأ الكلام في الجروب",
+  "sayHello": "قول أهلاً 👋",
+  "emptyGroupEnc": "رسايل الجروب مشفّرة بمفتاحه ومبتعدّيش على أي سيرفر.",
+  "emptyDirectEnc": "الرسايل مشفّرة من طرف لطرف تلقائياً — من غير كلمة سر ومن غير إنترنت.",
+  "emptySaved": "المحادثة دي بتتحفظ على موبايلك.",
+  "emptyNotSaved": "المحادثة دي مش بتتحفظ: هتتمسح لما تقفل التطبيق.",
+  "notFinished": "مكملش",
+  "chatEncryptedSystem": "المحادثة مشفرة من طرف لطرف 🔒",
+  "safetyVerifiedSystem": "تم التحقق من رمز الأمان ✓",
+  "previewPhoto": "📷 صورة",
+  "previewVideo": "🎥 فيديو",
+  "previewVoice": "🎤 رسالة صوتية",
+  "previewFile": "📄 {name}",
+  "@previewFile": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "sizeGb": "{n} جيجا",
+  "@sizeGb": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "sizeMb": "{n} ميجا",
+  "@sizeMb": {
+    "placeholders": {
+      "n": {
+        "type": "Object"
+      }
+    }
+  },
+  "readFileFromPhoneFailed": "معرفناش نقرا الملف من الموبايل",
+  "peerGotCorrupt": "وصل بايظ عند التاني — ابعته تاني",
+  "peerCanceledReceive": "التاني لغى الاستلام",
+  "personNearby": "شخص قريب",
+  "groupCreatedOpen": "الجروب اتعمل — أي حد قريب يقدر يدخل",
+  "groupCreatedPassword": "الجروب اتعمل — الدخول بكلمة السر",
+  "groupCreatedAsk": "الجروب اتعمل — الدخول بموافقتك",
+  "networkNotRunning": "الشبكة مش شغالة",
+  "wrongPassword": "كلمة السر غلط",
+  "groupNeedsApproval": "الجروب ده محتاج موافقة صاحبه",
+  "ownerOffline": "صاحب الجروب مش متصل دلوقتي — جرّب لما يكون قريب",
+  "sendRequestFailed": "معرفناش نبعت الطلب",
+  "notAllowed": "مش من صلاحياتك",
+  "noConnectionNow": "مفيش اتصال دلوقتي",
+  "youKicked": "شلت {name} من الجروب",
+  "@youKicked": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "ownerOnly": "صاحب الجروب بس اللي يقدر يعمل كده",
+  "maxAdmins": "وصلت لأقصى عدد مديرين",
+  "youMadeAdmin": "خليت {name} مدير",
+  "@youMadeAdmin": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "youRemovedAdmin": "شلت {name} من الإدارة",
+  "@youRemovedAdmin": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "adminsOnlyRename": "المديرين بس اللي يقدروا يغيّروا الاسم",
+  "youRenamed": "غيّرت اسم الجروب لـ \"{name}\"",
+  "@youRenamed": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "removedFromGroupNotice": "اتشلت من جروب \"{name}\"",
+  "@removedFromGroupNotice": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "byKicked": "{by} شال {who} من الجروب",
+  "@byKicked": {
+    "placeholders": {
+      "by": {
+        "type": "Object"
+      },
+      "who": {
+        "type": "Object"
+      }
+    }
+  },
+  "youBecameAdmin": "بقيت مدير في الجروب",
+  "becameAdmin": "{name} بقى مدير",
+  "@becameAdmin": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "youNoLongerAdmin": "مبقتش مدير في الجروب",
+  "noLongerAdmin": "{name} مبقاش مدير",
+  "@noLongerAdmin": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "byRenamed": "{by} غيّر اسم الجروب لـ \"{name}\"",
+  "@byRenamed": {
+    "placeholders": {
+      "by": {
+        "type": "Object"
+      },
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "mentionedYou": "منشن ليك: {text}",
+  "@mentionedYou": {
+    "placeholders": {
+      "text": {
+        "type": "Object"
+      }
+    }
+  },
+  "reactedOn": "تفاعل بـ {emoji} على: \"{text}\"",
+  "@reactedOn": {
+    "placeholders": {
+      "emoji": {
+        "type": "Object"
+      },
+      "text": {
+        "type": "Object"
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/crypto/kdf.dart';
 import '../../../core/platform/system_bridge.dart';
+import '../../../l10n/l10n.dart';
 import '../core/chat_session.dart';
 
 enum CallState {
@@ -77,8 +78,8 @@ class CallController extends ChangeNotifier {
 
   /// يبدأ مكالمة. يرجّع رسالة خطأ أو null.
   Future<String?> startCall({required bool video}) async {
-    if (busy) return 'فيه مكالمة شغالة بالفعل';
-    if (!session.canSend) return 'مش متصل دلوقتي';
+    if (busy) return tr.callBusy;
+    if (!session.canSend) return tr.notConnectedNow;
     final denied = await _askPermissions(video);
     if (denied != null) return denied;
 
@@ -89,11 +90,11 @@ class CallController extends ChangeNotifier {
     try {
       await session.sendCallSignal({'op': 'invite', 'cid': _callId, 'video': video});
     } catch (_) {
-      await _finish('مش متصل دلوقتي', notifyPeer: false);
-      return 'مش متصل دلوقتي';
+      await _finish(tr.notConnectedNow, notifyPeer: false);
+      return tr.notConnectedNow;
     }
     unawaited(_playRing(outgoing: true));
-    _timeout = Timer(_ringTimeout, () => _finish('مفيش رد'));
+    _timeout = Timer(_ringTimeout, () => _finish(tr.callNoAnswer));
     return null;
   }
 
@@ -111,17 +112,17 @@ class CallController extends ChangeNotifier {
     try {
       await _setupPeer();
       await session.sendCallSignal({'op': 'accept', 'cid': _callId});
-      _timeout = Timer(_connectTimeout, () => _finish('معرفناش نوصّل المكالمة'));
+      _timeout = Timer(_connectTimeout, () => _finish(tr.callConnectFailed));
     } catch (_) {
-      await _finish('معرفناش نشغّل المكالمة');
-      return 'معرفناش نشغّل الميكروفون/الكاميرا';
+      await _finish(tr.callStartFailed);
+      return tr.callMediaFailed;
     }
     return null;
   }
 
-  Future<void> reject() => _finish('اترفضت', op: 'reject');
+  Future<void> reject() => _finish(tr.callRejected, op: 'reject');
 
-  Future<void> hangUp() => _finish('المكالمة خلصت');
+  Future<void> hangUp() => _finish(tr.callEnded);
 
   void toggleMic() {
     micOn = !micOn;
@@ -171,7 +172,7 @@ class CallController extends ChangeNotifier {
       endReason = null;
       _setState(CallState.incoming);
       unawaited(_playRing(outgoing: false));
-      _timeout = Timer(_ringTimeout, () => _finish('فاتتك مكالمة', notifyPeer: false));
+      _timeout = Timer(_ringTimeout, () => _finish(tr.callMissed, notifyPeer: false));
       onIncoming?.call();
       return;
     }
@@ -188,7 +189,7 @@ class CallController extends ChangeNotifier {
           final offer = await _pc!.createOffer();
           await _pc!.setLocalDescription(offer);
           await session.sendCallSignal({'op': 'offer', 'cid': cid, 'sdp': offer.sdp, 'type': offer.type});
-          _timeout = Timer(_connectTimeout, () => _finish('معرفناش نوصّل المكالمة'));
+          _timeout = Timer(_connectTimeout, () => _finish(tr.callConnectFailed));
         case 'offer':
           final pc = _pc;
           if (pc == null) return;
@@ -214,14 +215,14 @@ class CallController extends ChangeNotifier {
             _pendingIce.add(c);
           }
         case 'reject':
-          await _finish('الطرف التاني رفض المكالمة', notifyPeer: false);
+          await _finish(tr.callPeerRejected, notifyPeer: false);
         case 'busy':
-          await _finish('الطرف التاني في مكالمة تانية', notifyPeer: false);
+          await _finish(tr.callPeerBusy, notifyPeer: false);
         case 'end':
-          await _finish(state == CallState.incoming ? 'فاتتك مكالمة' : 'الطرف التاني قفل المكالمة', notifyPeer: false);
+          await _finish(state == CallState.incoming ? tr.callMissed : tr.callPeerHungUp, notifyPeer: false);
       }
     } catch (_) {
-      await _finish('حصلت مشكلة في المكالمة');
+      await _finish(tr.callProblem);
     }
   }
 
@@ -289,7 +290,7 @@ class CallController extends ChangeNotifier {
             _setState(CallState.active);
           }
         case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
-          _finish('الاتصال فشل — اتأكدوا إنكم على نفس الشبكة');
+          _finish(tr.callIceFailed);
         default:
           break;
       }
@@ -305,15 +306,15 @@ class CallController extends ChangeNotifier {
     final mic = await Permission.microphone.request();
     if (!mic.isGranted) {
       return mic.isPermanentlyDenied
-          ? 'إذن الميكروفون مرفوض — فعّله من إعدادات التطبيق'
-          : 'محتاجين إذن الميكروفون عشان المكالمة';
+          ? tr.micDeniedForever
+          : tr.micNeededCall;
     }
     if (video) {
       final cam = await Permission.camera.request();
       if (!cam.isGranted) {
         return cam.isPermanentlyDenied
-            ? 'إذن الكاميرا مرفوض — فعّله من إعدادات التطبيق'
-            : 'محتاجين إذن الكاميرا عشان مكالمة الفيديو';
+            ? tr.camDeniedForever
+            : tr.camNeededCall;
       }
     }
     return null;
@@ -342,7 +343,7 @@ class CallController extends ChangeNotifier {
 
   void _onSessionChanged() {
     if (busy && session.state != SessionState.ready) {
-      _finish('الاتصال قطع', notifyPeer: false);
+      _finish(tr.callDropped, notifyPeer: false);
     }
   }
 
@@ -396,7 +397,7 @@ class CallController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _finish('المحادثة انتهت', notifyPeer: false);
+    _finish(tr.chatEnded, notifyPeer: false);
     session.removeListener(_onSessionChanged);
     if (session.onCallSignal == _onSignal) session.onCallSignal = null;
     _disposed = true;

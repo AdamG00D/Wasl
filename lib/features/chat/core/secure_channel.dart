@@ -6,6 +6,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/crypto/kdf.dart';
+import '../../../l10n/l10n.dart';
 import 'frame_transport.dart';
 
 /// رسالة داخل القناة المشفرة.
@@ -285,7 +286,7 @@ class SecureChannel {
       final code = (number % 1000000).toString().padLeft(6, '0');
 
       _pendingReady = ChannelReady(
-        peerName: peerName.isEmpty ? 'الطرف الآخر' : peerName,
+        peerName: peerName.isEmpty ? tr.otherSide : peerName,
         peerKey: base64.encode(peerId),
         safetyCode: '${code.substring(0, 3)} ${code.substring(3)}',
       );

@@ -174,6 +174,24 @@ class MainActivity : FlutterActivity() {
                             runOnUiThread { result.success(ok) }
                         }.start()
                     }
+                    "setLanguage" -> {
+                        AppLanguage.set(applicationContext, call.argument<String>("code") ?: "en")
+                        Notifications.ensureChannels(this)
+                        result.success(null)
+                    }
+                    "openUrl" -> {
+                        // لينك برا التطبيق (زي صفحة الكود على GitHub) — بيفتح في المتصفح
+                        val ok = try {
+                            startActivity(
+                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(call.argument<String>("url") ?: ""))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                            true
+                        } catch (e: Exception) {
+                            false
+                        }
+                        result.success(ok)
+                    }
                     "clearNotifications" -> {
                         Notifications.clear(this)
                         result.success(null)

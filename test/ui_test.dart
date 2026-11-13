@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wasl/core/config.dart';
 import 'package:wasl/core/nav.dart';
 import 'package:wasl/core/profile/profile.dart';
 import 'package:wasl/core/settings/app_settings.dart';
@@ -16,23 +17,28 @@ import 'package:wasl/features/groups/group_ui.dart';
 import 'package:wasl/features/home/home_screen.dart';
 import 'package:wasl/features/home/transport_screen.dart';
 import 'package:wasl/features/hub/chat_hub.dart';
+import 'package:wasl/l10n/l10n.dart';
 import 'package:wasl/widgets/ui.dart';
 import 'package:wasl/features/onboarding/profile_editor.dart';
 import 'package:wasl/features/settings/settings_screen.dart';
 import 'package:wasl/mesh/mesh_router.dart';
 
-Widget app(Widget home, {Brightness brightness = Brightness.light}) => MaterialApp(
+Widget app(Widget home, {Brightness brightness = Brightness.light, Locale locale = const Locale('ar')}) {
+  L10n.use(locale);
+  return MaterialApp(
       navigatorKey: rootNavigatorKey,
       theme: AppTheme.build(AccentTheme.all.first, brightness),
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar')],
+      locale: locale,
+      supportedLocales: L10n.supported,
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       home: home,
     );
+}
 
 /// اختبارات دخان للشاشات: بتتبني من غير أخطاء على مقاس موبايل، فاتح وغامق.
 void main() {
@@ -90,11 +96,39 @@ void main() {
       expect(AppSettings.instance.saveChats, isFalse);
       expect(AppSettings.instance.lockEnabled, isFalse);
       await tester.scrollUntilVisible(find.text('إزاي Wasl بيشتغل؟'), 200, scrollable: find.byType(Scrollable).first);
+      await tester.ensureVisible(find.text('إزاي Wasl بيشتغل؟'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('إزاي Wasl بيشتغل؟'));
       await tester.pumpAndSettle();
       expect(find.text('شبكة Mesh'), findsOneWidget);
     });
   }
+
+  test('اللغة الافتراضية: عربي لو الجهاز عربي، وغير كده إنجليزي', () {
+    expect(L10n.resolve(const Locale('ar', 'EG')).languageCode, 'ar');
+    expect(L10n.resolve(const Locale('en', 'US')).languageCode, 'en');
+    expect(L10n.resolve(const Locale('fr')).languageCode, 'en');
+    expect(L10n.resolve(null).languageCode, 'en');
+    expect(L10n.pick('ar', const Locale('fr')).languageCode, 'ar');
+    expect(L10n.pick(null, const Locale('ar')).languageCode, 'ar');
+  });
+
+  testWidgets('الإنجليزي: الشاشات بالإنجليزي والاتجاه من الشمال لليمين', (tester) async {
+    phone(tester);
+    addTearDown(() => L10n.use(const Locale('ar')));
+    await tester.pumpWidget(app(const TransportScreen(), locale: const Locale('en')));
+    expect(find.text('Bluetooth'), findsOneWidget);
+    expect(find.text('Wi-Fi'), findsOneWidget);
+    expect(Directionality.of(tester.element(find.text('Bluetooth'))), TextDirection.ltr);
+    expect(tr.bluetooth, 'Bluetooth');
+    await tester.tap(find.byIcon(Icons.tune_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Save chats on this phone'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Source code on GitHub'), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Language'), findsOneWidget);
+    expect(find.text('العربية'), findsOneWidget);
+    expect(find.text('v${AppConfig.appVersion}'), findsOneWidget);
+  });
 
   testWidgets('الرئيسية على الواي فاي: جروب جديد وشاشة المحادثة', (tester) async {
     phone(tester);
@@ -181,6 +215,13 @@ void main() {
     expect(find.text('❤️'), findsNothing);
     expect(find.text('تحويل'), findsOneWidget);
     expect(find.text('حذف عند الكل (إنت مدير)'), findsOneWidget);
+    // آخر اختيار في القايمة لازم يتوصله (بالسكرول لو الشاشة صغيرة)
+    await tester.scrollUntilVisible(
+      find.text('حذف عندي بس'),
+      80,
+      scrollable: find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable)),
+    );
+    expect(find.text('حذف عندي بس').hitTestable(), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 

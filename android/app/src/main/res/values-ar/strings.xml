@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_service">الدردشة الشغالة</string>
+    <string name="channel_service_desc">بيفضل ظاهر طول ما الدردشة شغالة في الخلفية</string>
+    <string name="channel_messages">رسايل جديدة</string>
+    <string name="channel_messages_desc">إشعار بكل رسالة جديدة</string>
+    <string name="ongoing_call">مكالمة شغالة</string>
+    <string name="ongoing_chat">الدردشة شغالة</string>
+    <string name="new_message">رسالة جديدة</string>
+    <string name="new_request">طلب انضمام جديد</string>
+    <string name="incoming_call">مكالمة واردة</string>
+    <string name="you">إنت</string>
+    <string name="reply">رد</string>
+    <string name="mark_read">تمت القراءة</string>
+    <string name="summary">رسايل جديدة من %1$d محادثات</string>
+    <string name="cancel">إلغاء</string>
+</resources>

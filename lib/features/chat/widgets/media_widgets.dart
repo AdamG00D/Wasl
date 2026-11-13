@@ -12,6 +12,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../../core/platform/system_bridge.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../../../widgets/feedback.dart';
 import '../core/chat_link.dart';
 import '../core/chat_session.dart';
@@ -20,36 +21,32 @@ import '../voice/voice.dart';
 /// قائمة المرفقات (زي الواتساب): مستند، كاميرا، المعرض، صوت.
 Future<void> showAttachSheet(BuildContext context, ChatLink link, {ReplyInfo? reply, VoidCallback? onSent}) async {
   final p = context.palette;
-  final choice = await showModalBottomSheet<String>(
-    context: context,
-    builder: (ctx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+  final choice = await showActionSheet<String>(
+    context,
+    padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+    builder: (ctx) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceEvenly,
+          spacing: 8,
+          runSpacing: 18,
           children: [
-            const Wrap(
-              alignment: WrapAlignment.spaceEvenly,
-              spacing: 8,
-              runSpacing: 18,
-              children: [
-                _AttachItem(icon: Icons.insert_drive_file_rounded, label: 'مستند', color: Color(0xFF7F66FF), value: 'doc'),
-                _AttachItem(icon: Icons.photo_camera_rounded, label: 'كاميرا', color: Color(0xFFFF2E74), value: 'camera'),
-                _AttachItem(icon: Icons.photo_library_rounded, label: 'المعرض', color: Color(0xFFC861FA), value: 'gallery'),
-                _AttachItem(icon: Icons.headphones_rounded, label: 'صوت', color: Color(0xFFFF7F21), value: 'audio'),
-              ],
-            ),
-            if (!link.supportsVideo) ...[
-              const SizedBox(height: 14),
-              Text(
-                'الفيديو متاح في دردشة الواي فاي / الهوت سبوت (البلوتوث أبطأ من كده).',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: p.textMuted, fontSize: 12.5),
-              ),
-            ],
+            _AttachItem(icon: Icons.insert_drive_file_rounded, label: context.l10n.attachDocument, color: const Color(0xFF7F66FF), value: 'doc'),
+            _AttachItem(icon: Icons.photo_camera_rounded, label: context.l10n.attachCamera, color: const Color(0xFFFF2E74), value: 'camera'),
+            _AttachItem(icon: Icons.photo_library_rounded, label: context.l10n.attachGallery, color: const Color(0xFFC861FA), value: 'gallery'),
+            _AttachItem(icon: Icons.headphones_rounded, label: context.l10n.attachAudio, color: const Color(0xFFFF7F21), value: 'audio'),
           ],
         ),
-      ),
+        if (!link.supportsVideo) ...[
+          const SizedBox(height: 14),
+          Text(
+            context.l10n.videoWifiOnlyHint,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: p.textMuted, fontSize: 12.5),
+          ),
+        ],
+      ],
     ),
   );
   if (choice == null || !context.mounted) return;
@@ -63,24 +60,23 @@ Future<void> showAttachSheet(BuildContext context, ChatLink link, {ReplyInfo? re
     case 'camera':
       var video = false;
       if (link.supportsVideo) {
-        final pick = await showModalBottomSheet<bool>(
-          context: context,
-          builder: (ctx) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_camera_rounded),
-                  title: const Text('صورة'),
-                  onTap: () => Navigator.pop(ctx, false),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.videocam_rounded),
-                  title: const Text('فيديو'),
-                  onTap: () => Navigator.pop(ctx, true),
-                ),
-              ],
-            ),
+        final pick = await showActionSheet<bool>(
+          context,
+          padding: EdgeInsets.zero,
+          builder: (ctx) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera_rounded),
+                title: Text(context.l10n.photo),
+                onTap: () => Navigator.pop(ctx, false),
+              ),
+              ListTile(
+                leading: const Icon(Icons.videocam_rounded),
+                title: Text(context.l10n.video),
+                onTap: () => Navigator.pop(ctx, true),
+              ),
+            ],
           ),
         );
         if (pick == null) return;
@@ -131,12 +127,12 @@ Future<void> sendFromCamera(
   VoidCallback? onSent,
 }) async {
   if (video && !link.supportsVideo) {
-    showToast(context, 'الفيديو متاح في دردشة الواي فاي بس', error: true);
+    showToast(context, context.l10n.videoWifiOnly, error: true);
     return;
   }
   final st = await Permission.camera.request();
   if (!st.isGranted) {
-    if (context.mounted) showToast(context, 'محتاجين إذن الكاميرا — فعّله من إعدادات التطبيق', error: true);
+    if (context.mounted) showToast(context, context.l10n.cameraPermission, error: true);
     if (st.isPermanentlyDenied) await openAppSettings();
     return;
   }
@@ -147,7 +143,7 @@ Future<void> sendFromCamera(
         ? await picker.pickVideo(source: ImageSource.camera, maxDuration: const Duration(minutes: 10))
         : await picker.pickImage(source: ImageSource.camera, imageQuality: 82, maxWidth: 2048, maxHeight: 2048);
   } catch (_) {
-    if (context.mounted) showToast(context, 'معرفناش نفتح الكاميرا', error: true);
+    if (context.mounted) showToast(context, context.l10n.cameraFailed, error: true);
     return;
   }
   if (file == null || !context.mounted) return;
@@ -177,7 +173,7 @@ Future<void> _sendGallery(BuildContext context, ChatLink link, {ReplyInfo? reply
   try {
     files = await ImagePicker().pickMultipleMedia(limit: 20);
   } catch (_) {
-    if (context.mounted) showToast(context, 'معرفناش نفتح المعرض', error: true);
+    if (context.mounted) showToast(context, context.l10n.galleryFailed, error: true);
     return;
   }
   if (files.isEmpty) return;
@@ -217,7 +213,7 @@ Future<void> _sendGallery(BuildContext context, ChatLink link, {ReplyInfo? reply
     first = false;
   }
   if (skippedVideo && context.mounted) {
-    showToast(context, 'الفيديو متاح في دردشة الواي فاي بس — اتبعتت الصور بس', error: true);
+    showToast(context, context.l10n.videoWifiOnlyPhotosSent, error: true);
   }
 }
 
@@ -234,7 +230,7 @@ Future<File?> prepareVideo(BuildContext context, File file) async {
   );
   if (result == null || result.canceled) return null;
   if (result.path == null) {
-    if (context.mounted) showToast(context, 'معرفناش نضغط الفيديو — هيتبعت زي ما هو', error: true);
+    if (context.mounted) showToast(context, context.l10n.videoCompressFailed, error: true);
     return file;
   }
   return File(result.path!);
@@ -287,12 +283,12 @@ class _CompressDialogState extends State<_CompressDialog> {
       canPop: false,
       child: AlertDialog(
         icon: Icon(Icons.movie_creation_rounded, color: p.accent, size: 32),
-        title: const Text('بنجهّز الفيديو', textAlign: TextAlign.center),
+        title: Text(context.l10n.preparingVideo, textAlign: TextAlign.center),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'بنصغّره عشان يشتغل على أي موبايل ويتبعت أسرع.',
+              context.l10n.preparingVideoBody,
               textAlign: TextAlign.center,
               style: TextStyle(color: p.textMuted),
             ),
@@ -315,7 +311,7 @@ class _CompressDialogState extends State<_CompressDialog> {
               SystemBridge.cancelVideoCompression();
               Navigator.pop(context, const _VideoPrepResult(canceled: true));
             },
-            child: const Text('إلغاء'),
+            child: Text(context.l10n.cancel),
           ),
         ],
       ),
@@ -336,13 +332,13 @@ Future<void> _sendDocument(
   try {
     picked = await FilePicker.pickFile(type: audio ? FileType.audio : FileType.any);
   } catch (_) {
-    if (context.mounted) showToast(context, 'معرفناش نفتح الملفات', error: true);
+    if (context.mounted) showToast(context, context.l10n.filesFailed, error: true);
     return;
   }
   if (picked == null) return;
   final length = await picked.length() ?? 0;
   if (length > session.maxFileBytes) {
-    if (context.mounted) showToast(context, 'الملف أكبر من ${_formatSize(session.maxFileBytes)}', error: true);
+    if (context.mounted) showToast(context, context.l10n.fileTooBig(_formatSize(session.maxFileBytes)), error: true);
     return;
   }
   File source;
@@ -360,7 +356,7 @@ Future<void> _sendDocument(
       await sink.addStream(picked.xFile.openRead());
       await sink.close();
     } catch (_) {
-      if (context.mounted) showToast(context, 'معرفناش نقرا الملف', error: true);
+      if (context.mounted) showToast(context, context.l10n.readFileFailed, error: true);
       return;
     }
   }
@@ -501,7 +497,7 @@ class _FailedLabel extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            reason ?? (mine ? 'موصلش — ابعته تاني' : 'الملف موصلش كامل'),
+            reason ?? (mine ? context.l10n.sendFailedRetry : context.l10n.fileIncomplete),
             textAlign: TextAlign.center,
             style: TextStyle(color: light ? Colors.white : p.textMuted, fontSize: 12.5, fontWeight: FontWeight.w600),
           ),
@@ -541,16 +537,17 @@ class _FileContent extends StatelessWidget {
     final media = m.media!;
     final mine = m.kind == MessageKind.mine;
     final fg = mine ? p.onAccent : p.text;
-    final name = media.name ?? 'ملف';
+    final l = context.l10n;
+    final name = media.name ?? l.file;
     final transferring = m.transferring;
 
     String detail;
     if (media.failed) {
-      detail = media.failReason ?? (mine ? 'موصلش — ابعته تاني' : 'الملف موصلش كامل');
+      detail = media.failReason ?? (mine ? l.sendFailedRetry : l.fileIncomplete);
     } else if (transferring) {
       detail = media.paused
-          ? 'مستني الاتصال يرجع... ${(media.progress * 100).round()}%'
-          : '${(media.progress * 100).round()}% من ${_formatSize(media.size)}';
+          ? l.waitingReconnectPct((media.progress * 100).round())
+          : l.pctOfSize((media.progress * 100).round(), _formatSize(media.size));
     } else {
       final ext = name.contains('.') ? name.split('.').last.toUpperCase() : '';
       detail = '${_formatSize(media.size)}${ext.isEmpty || ext.length > 6 ? '' : ' • $ext'}';
@@ -561,7 +558,7 @@ class _FileContent extends StatelessWidget {
       onTap: media.ready && !transferring ? () => openChatFile(context, media) : null,
       child: Container(
         width: 250,
-        padding: const EdgeInsets.fromLTRB(10, 10, 6, 10),
+        padding: const EdgeInsetsDirectional.fromSTEB(6, 10, 10, 10),
         decoration: BoxDecoration(
           color: (mine ? Colors.black : p.accent).withValues(alpha: mine ? 0.10 : 0.07),
           borderRadius: BorderRadius.circular(14),
@@ -601,14 +598,14 @@ class _FileContent extends StatelessWidget {
                 ),
                 if (transferring && onCancel != null)
                   IconButton(
-                    tooltip: mine ? 'إلغاء الإرسال' : 'إلغاء الاستلام',
+                    tooltip: mine ? l.cancelSending : l.cancelReceiving,
                     visualDensity: VisualDensity.compact,
                     onPressed: onCancel,
                     icon: Icon(Icons.close_rounded, color: fg),
                   )
                 else if (media.ready && !mine)
                   IconButton(
-                    tooltip: 'حفظ في التنزيلات',
+                    tooltip: l.saveToDownloads,
                     visualDensity: VisualDensity.compact,
                     onPressed: () => saveChatFile(context, media),
                     icon: Icon(Icons.download_rounded, color: p.accent),
@@ -639,7 +636,7 @@ Future<void> openChatFile(BuildContext context, ChatMedia media) async {
   // الاسم بيحدد النوع للتطبيق التاني (فيديو/PDF...) — للصور والفيديو بناخده من الامتداد
   final ok = await SystemBridge.openFile(media.path!, media.name ?? media.path!.split('/').last);
   if (!ok && context.mounted) {
-    showToast(context, 'مفيش تطبيق على الموبايل يفتح النوع ده — احفظه أو شاركه', error: true);
+    showToast(context, context.l10n.noAppToOpen, error: true);
   }
 }
 
@@ -649,13 +646,13 @@ Future<void> saveChatFile(BuildContext context, ChatMedia media) async {
   if (await SystemBridge.sdkInt() < 29) {
     final st = await Permission.storage.request();
     if (!st.isGranted) {
-      if (context.mounted) showToast(context, 'محتاجين إذن التخزين عشان نحفظ الملف', error: true);
+      if (context.mounted) showToast(context, context.l10n.storagePermission, error: true);
       return;
     }
   }
   final ok = await SystemBridge.saveToDownloads(media.path!, media.name ?? media.path!.split('/').last);
   if (context.mounted) {
-    showToast(context, ok ? 'اتحفظ في التنزيلات ← Wasl' : 'معرفناش نحفظ الملف', error: !ok);
+    showToast(context, ok ? context.l10n.savedToDownloads : context.l10n.saveFileFailed, error: !ok);
   }
 }
 
@@ -711,7 +708,9 @@ class _Progress extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          paused ? 'مستني الاتصال... ${(progress * 100).round()}%' : '${(progress * 100).round()}% • ${_formatSize(size)}',
+          paused
+              ? context.l10n.waitingConnectionPct((progress * 100).round())
+              : '${(progress * 100).round()}% • ${_formatSize(size)}',
           style: TextStyle(
             color: light ? Colors.white : p.textMuted,
             fontSize: 12,
@@ -786,11 +785,11 @@ class _VideoThumbState extends State<_VideoThumb> {
             ColoredBox(
               color: Colors.black,
               child: _error
-                  ? const Align(
-                      alignment: Alignment(0, 0.7),
+                  ? Align(
+                      alignment: const Alignment(0, 0.7),
                       child: Text(
-                        'اضغط عشان تفتحه',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        context.l10n.tapToOpen,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     )
                   : null,
@@ -887,7 +886,7 @@ class _MediaViewerState extends State<MediaViewer> {
     try {
       if (!await Gal.hasAccess() && !await Gal.requestAccess()) {
         if (mounted) {
-          showToast(context, 'محتاجين إذن الوصول للصور', error: true);
+          showToast(context, context.l10n.photosPermission, error: true);
         }
         return;
       }
@@ -896,9 +895,9 @@ class _MediaViewerState extends State<MediaViewer> {
       } else {
         await Gal.putImage(widget.media.path!);
       }
-      if (mounted) showToast(context, 'اتحفظ في المعرض');
+      if (mounted) showToast(context, context.l10n.savedToGallery);
     } catch (_) {
-      if (mounted) showToast(context, 'معرفناش نحفظ الملف', error: true);
+      if (mounted) showToast(context, context.l10n.saveFileFailed, error: true);
     }
   }
 
@@ -920,17 +919,17 @@ class _MediaViewerState extends State<MediaViewer> {
         actions: [
           if (_isVideo)
             IconButton(
-              tooltip: 'افتح بتطبيق تاني',
+              tooltip: context.l10n.openWithOtherApp,
               icon: const Icon(Icons.open_in_new_rounded),
               onPressed: () => openChatFile(context, widget.media),
             ),
           IconButton(
-            tooltip: 'حفظ في المعرض',
+            tooltip: context.l10n.saveToGallery,
             icon: const Icon(Icons.download_rounded),
             onPressed: _save,
           ),
           IconButton(
-            tooltip: 'مشاركة',
+            tooltip: context.l10n.share,
             icon: const Icon(Icons.share_rounded),
             onPressed: _share,
           ),
@@ -950,23 +949,23 @@ class _MediaViewerState extends State<MediaViewer> {
                   children: [
                     const Icon(Icons.movie_filter_rounded, color: Colors.white70, size: 54),
                     const SizedBox(height: 14),
-                    const Text(
-                      'الفيديو وصل سليم، بس المشغّل اللي جوه التطبيق مش قادر يشغّل النوع ده.',
+                    Text(
+                      context.l10n.videoCantPlay,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 15.5, height: 1.6),
+                      style: const TextStyle(color: Colors.white, fontSize: 15.5, height: 1.6),
                     ),
                     const SizedBox(height: 18),
                     FilledButton.icon(
                       onPressed: () => openChatFile(context, widget.media),
                       icon: const Icon(Icons.open_in_new_rounded),
-                      label: const Text('افتح بتطبيق تاني'),
+                      label: Text(context.l10n.openWithOtherApp),
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(
                       onPressed: _save,
                       style: TextButton.styleFrom(foregroundColor: Colors.white),
                       icon: const Icon(Icons.download_rounded),
-                      label: const Text('احفظه في المعرض'),
+                      label: Text(context.l10n.saveItToGallery),
                     ),
                   ],
                 ),

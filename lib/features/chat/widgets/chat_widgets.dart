@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../../../widgets/ui.dart';
 import '../core/chat_errors.dart';
 import '../core/chat_session.dart';
@@ -28,7 +29,7 @@ class MessageList extends StatelessWidget {
     this.onQuoteTap,
     this.keyFor,
     this.highlightId,
-    this.peerName = 'الطرف التاني',
+    this.peerName,
     this.controller,
     this.senderLook,
     this.onSenderTap,
@@ -57,7 +58,9 @@ class MessageList extends StatelessWidget {
 
   /// رسالة بتنور لحظة (بعد ما نروحلها).
   final String? highlightId;
-  final String peerName;
+
+  /// اسم الطرف التاني (في الاقتباسات). null = "الطرف التاني".
+  final String? peerName;
   final ScrollController? controller;
 
   /// في الجروب: شكل صاحب الرسالة (null = من غير أفاتار جنب الرسايل).
@@ -95,7 +98,7 @@ class MessageList extends StatelessWidget {
           onReply: onReply == null ? null : () => onReply!(m),
           child: _Bubble(
             message: m,
-            peerName: peerName,
+            peerName: peerName ?? context.l10n.theOtherSide,
             highlight: highlightId == m.id,
             onLongPress: onMessageActions == null ? null : () => onMessageActions!(m),
             onCancel: onCancelTransfer == null ? null : () => onCancelTransfer!(m),
@@ -353,7 +356,7 @@ class _Bubble extends StatelessWidget {
                   Icon(Icons.shortcut_rounded, size: 13, color: fg.withValues(alpha: 0.65)),
                   const SizedBox(width: 3),
                   Text(
-                    'محوّلة',
+                    context.l10n.forwarded,
                     style: TextStyle(color: fg.withValues(alpha: 0.65), fontSize: 11.5, fontStyle: FontStyle.italic),
                   ),
                 ],
@@ -383,7 +386,7 @@ class _Bubble extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (m.edited) ...[
-                  Text('معدّلة', style: TextStyle(color: fg.withValues(alpha: 0.6), fontSize: 10.5)),
+                  Text(context.l10n.edited, style: TextStyle(color: fg.withValues(alpha: 0.6), fontSize: 10.5)),
                   const SizedBox(width: 6),
                 ],
                 Text(time, style: TextStyle(color: fg.withValues(alpha: 0.65), fontSize: 11)),
@@ -517,7 +520,7 @@ class _QuoteBox extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              reply.toMine ? 'انت' : (reply.author ?? peerName),
+              reply.toMine ? context.l10n.you : (reply.author ?? peerName),
               style: TextStyle(color: barColor, fontWeight: FontWeight.w700, fontSize: 12.5),
             ),
             Text(
@@ -642,7 +645,7 @@ class SafetyCodeCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'قارن رمز الأمان مع $peerName',
+                  context.l10n.compareSafety(peerName),
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5),
                 ),
               ),
@@ -663,7 +666,7 @@ class SafetyCodeCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'تأكيد إضافي (اختياري): لو نفس الرقم ظاهر على الموبايل التاني يبقى متأكدين ١٠٠٪ إن محدش في النص.',
+            context.l10n.compareSafetyHint,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.textMuted, fontSize: 13, height: 1.6),
           ),
@@ -672,7 +675,7 @@ class SafetyCodeCard extends StatelessWidget {
             children: [
               Expanded(
                 child: SecondaryButton(
-                  label: 'مختلف',
+                  label: context.l10n.different,
                   icon: Icons.close_rounded,
                   color: p.danger,
                   height: 46,
@@ -683,7 +686,7 @@ class SafetyCodeCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: PrimaryButton(
-                  label: 'متطابق',
+                  label: context.l10n.matches,
                   icon: Icons.check_rounded,
                   height: 46,
                   onPressed: onMatch,
@@ -710,7 +713,7 @@ class ChatErrorCard extends StatelessWidget {
     final p = context.palette;
     return AppCard(
       borderColor: p.danger.withValues(alpha: 0.4),
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+      padding: const EdgeInsetsDirectional.fromSTEB(8, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

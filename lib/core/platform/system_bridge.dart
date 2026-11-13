@@ -34,6 +34,22 @@ class SystemBridge {
   static Future<bool> wifiEnabled() async =>
       await _channel.invokeMethod<bool>('wifiEnabled') ?? false;
 
+  /// لغة نصوص الإشعارات والبصمة ('ar' / 'en') — بتمشي على لغة التطبيق.
+  static Future<void> setLanguage(String code) async {
+    try {
+      await _channel.invokeMethod('setLanguage', {'code': code});
+    } catch (_) {}
+  }
+
+  /// يفتح لينك في المتصفح. false لو مفيش تطبيق يفتحه.
+  static Future<bool> openUrl(String url) async {
+    try {
+      return await _channel.invokeMethod<bool>('openUrl', {'url': url}) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ---------------- الشبكة ----------------
 
   /// لازم عشان استقبال إعلانات الأجهزة (broadcast) على الواي فاي.

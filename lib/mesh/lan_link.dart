@@ -93,8 +93,7 @@ class LanLink extends MeshLink {
         LinkPhase.failed,
         const ChatError(
           ChatErrorKind.network,
-          'معرفناش نبدأ على الشبكة',
-          'اقفل التطبيق وافتحه تاني. لو المشكلة فضلت اعمل ريستارت للواي فاي.',
+          ChatText.lanStart,
         ),
       );
       return;

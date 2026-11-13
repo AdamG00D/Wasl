@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/crypto/box.dart';
 import '../../core/crypto/kdf.dart';
+import '../../l10n/l10n.dart';
 import '../chat/core/chat_session.dart';
 import '../chat/core/secure_channel.dart';
 
@@ -317,20 +318,20 @@ class GroupSession extends ChatSession {
     List<int>? waveform,
     bool forwarded = false,
   }) async {
-    if (!canSend) return 'مفيش حد من الجروب واصلين له دلوقتي';
-    if (kind == MediaKind.video && !allowVideo) return 'الفيديو متاح في الواي فاي بس';
+    if (!canSend) return tr.groupNobodyReachable;
+    if (kind == MediaKind.video && !allowVideo) return tr.videoWifiOnlyShort;
     final int size;
     try {
       size = await file.length();
     } catch (_) {
-      return 'معرفناش نقرا الملف';
+      return tr.readFileFailed;
     }
-    if (size == 0) return 'الملف فاضي';
+    if (size == 0) return tr.fileEmpty;
     if (kind == MediaKind.video && await ChatSession.sniffKind(file) == MediaKind.image) {
-      return 'الملف ده مش فيديو سليم — اختاره تاني من المعرض';
+      return tr.notAValidVideo;
     }
     final limit = limitFor(kind);
-    if (size > limit) return 'أقصى حجم في الجروبات ${ChatSession.mb(limit)}';
+    if (size > limit) return tr.groupMaxSize(ChatSession.mb(limit));
 
     final cleanName = name == null ? null : ChatSession.cleanFileName(name);
     final media = ChatMedia(
@@ -399,7 +400,7 @@ class GroupSession extends ChatSession {
     } catch (_) {
       if (!_canceledOut.contains(msg.id)) {
         media.failed = true;
-        media.failReason = online() ? 'معرفناش نبعت الملف' : 'الاتصال وقف قبل ما يكمل';
+        media.failReason = online() ? tr.sendFileFailed : tr.connectionStoppedEarly;
         msg.status = MessageStatus.failed;
         _emit({'k': 'fx', 'id': msg.id}).catchError((Object _) {});
       }
@@ -446,7 +447,7 @@ class GroupSession extends ChatSession {
     if (sender != src || (isBanned?.call(sender) ?? false)) return;
     onMemberSeen?.call(sender);
     var name = '${p['n'] ?? ''}'.replaceAll(RegExp(r'[\u0000-\u001f]'), '').trim();
-    if (name.isEmpty) name = 'مجهول';
+    if (name.isEmpty) name = tr.unknownName;
     if (name.length > 24) name = name.substring(0, 24);
     final id = '${p['id'] ?? ''}';
 
@@ -523,10 +524,10 @@ class GroupSession extends ChatSession {
           _remove(m);
         }
       case 'join':
-        addSystem('$name دخل الجروب');
+        addSystem(tr.memberJoined(name));
       case 'leave':
         _setTyping(sender, null);
-        addSystem('$name خرج من الجروب');
+        addSystem(tr.memberLeft(name));
       case 'fs':
         if (id.isEmpty || id.length > 80 || findById(id) != null) return;
         final kind = MediaKind.values.where((k) => k.name == p['mk']).firstOrNull ?? MediaKind.file;
@@ -572,7 +573,7 @@ class GroupSession extends ChatSession {
         final bytes = base64.decode('${p['d']}');
         final media = f.message.media!;
         if (i != f.next || f.received + bytes.length > media.size) {
-          await _abortIncoming(id, reason: 'وصل ناقص');
+          await _abortIncoming(id, reason: tr.arrivedIncomplete);
           return;
         }
         f.sink.add(bytes);
@@ -590,7 +591,7 @@ class GroupSession extends ChatSession {
         if (f == null || f.message.senderId != sender) return;
         final media = f.message.media!;
         if (f.received != media.size || f.next != f.total) {
-          await _abortIncoming(id, reason: 'وصل ناقص');
+          await _abortIncoming(id, reason: tr.arrivedIncomplete);
           return;
         }
         _incoming.remove(id);
@@ -599,7 +600,7 @@ class GroupSession extends ChatSession {
         f.hash.close();
         if (Kdf.hex((await f.hash.hash()).bytes) != '${p['sha']}') {
           media.failed = true;
-          media.failReason = 'وصل مختلف عن الأصلي';
+          media.failReason = tr.arrivedCorrupt;
           await ChatSession.deleteQuietly(f.file);
         } else {
           media.path = await ChatSession.fixVideoExtension(f.file, media.kind);
@@ -629,7 +630,7 @@ class GroupSession extends ChatSession {
     final now = DateTime.now();
     for (final e in _incoming.entries.toList()) {
       if (now.difference(e.value.last) > const Duration(seconds: 40)) {
-        _abortIncoming(e.key, reason: 'الإرسال وقف قبل ما يكمل');
+        _abortIncoming(e.key, reason: tr.sendingStoppedEarly);
       }
     }
   }
@@ -637,7 +638,7 @@ class GroupSession extends ChatSession {
   @override
   void abortTransfers() {
     for (final id in _incoming.keys.toList()) {
-      _abortIncoming(id, reason: 'الاتصال وقف قبل ما يكمل');
+      _abortIncoming(id, reason: tr.connectionStoppedEarly);
     }
   }
 

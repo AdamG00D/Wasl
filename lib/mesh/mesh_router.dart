@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../core/crypto/kdf.dart';
 import '../core/profile/profile.dart';
+import '../l10n/l10n.dart';
 import '../widgets/cartoon_avatar.dart';
 import 'mesh_link.dart';
 
@@ -525,7 +526,7 @@ class MeshRouter extends ChangeNotifier {
         node.hops != newHops ||
         !_sameGroups(node.groups, groups);
     node
-      ..name = name.isEmpty ? 'مجهول' : name
+      ..name = name.isEmpty ? tr.unknownName : name
       ..color = color
       ..avatar = avatar
       ..cartoon = cartoon

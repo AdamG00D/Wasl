@@ -79,7 +79,7 @@ object BiometricGate {
         val prompt = BiometricPrompt.Builder(activity)
             .setTitle(title)
             .apply { if (subtitle.isNotEmpty()) setSubtitle(subtitle) }
-            .setNegativeButton("إلغاء", activity.mainExecutor) { _, _ -> answer(false) }
+            .setNegativeButton(AppLanguage.string(activity, R.string.cancel), activity.mainExecutor) { _, _ -> answer(false) }
             .build()
         prompt.authenticate(
             CancellationSignal(),

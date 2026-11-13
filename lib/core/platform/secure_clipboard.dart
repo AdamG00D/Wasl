@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/l10n.dart';
 import '../../widgets/feedback.dart';
 
 /// نسخ مؤقت: يُمسح النص من الحافظة تلقائياً بعد 30 ثانية
@@ -26,7 +27,7 @@ class SecureClipboard {
       } catch (_) {}
     });
     if (context.mounted) {
-      showToast(context, 'تم النسخ — هيتمسح من الحافظة بعد 30 ثانية');
+      showToast(context, context.l10n.copiedSecure);
     }
   }
 }

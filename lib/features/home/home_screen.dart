@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/platform/system_bridge.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../../mesh/dual_link.dart';
 import '../../mesh/lan_link.dart';
 import '../../mesh/mesh_link.dart';
@@ -53,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _joinSub = _hub.joinResults.listen((e) {
       if (!mounted) return;
       final (ad, ok) = e;
-      showToast(context, ok ? 'اتقبلت في "${ad.name}" 🎉' : 'طلبك لدخول "${ad.name}" اترفض', error: !ok);
+      showToast(context, ok ? context.l10n.joinAccepted(ad.name) : context.l10n.joinRejected(ad.name), error: !ok);
     });
     _noticeSub = _hub.notices.listen((text) {
       if (mounted) showToast(context, text, error: true);
@@ -125,11 +126,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final ok = await confirmDialog(
         context,
         icon: Icons.power_settings_new_rounded,
-        title: 'تقفل الاتصال؟',
-        message: unsaved
-            ? 'هتبقى مش ظاهر للناس، والمحادثات اللي مش محفوظة هتتمسح.'
-            : 'هتبقى مش ظاهر للناس لحد ما تدخل تاني.',
-        confirm: 'اقفل',
+        title: context.l10n.leaveTitle,
+        message: unsaved ? context.l10n.leaveBodyUnsaved : context.l10n.leaveBody,
+        confirm: context.l10n.disconnect,
         destructive: unsaved,
       );
       if (!ok) return;
@@ -214,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     icon: Icon(_tab == 0 ? Icons.edit_rounded : Icons.group_add_rounded),
                     label: Text(
-                      _tab == 0 ? 'محادثة جديدة' : 'جروب جديد',
+                      _tab == 0 ? context.l10n.newChat : context.l10n.newGroup,
                       style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -231,17 +230,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       NavigationDestination(
                         icon: _NavIcon(Icons.chat_bubble_outline_rounded, _hub.totalUnread),
                         selectedIcon: _NavIcon(Icons.chat_bubble_rounded, _hub.totalUnread, selected: true),
-                        label: 'المحادثات',
+                        label: context.l10n.tabChats,
                       ),
                       NavigationDestination(
                         icon: _NavIcon(Icons.groups_outlined, _hub.groupRequests),
                         selectedIcon: _NavIcon(Icons.groups_rounded, _hub.groupRequests, selected: true),
-                        label: 'الجروبات',
+                        label: context.l10n.tabGroups,
                       ),
-                      const NavigationDestination(
-                        icon: _NavIcon(Icons.radar_rounded, 0),
-                        selectedIcon: _NavIcon(Icons.radar_rounded, 0, selected: true),
-                        label: 'القريبين',
+                      NavigationDestination(
+                        icon: const _NavIcon(Icons.radar_rounded, 0),
+                        selectedIcon: const _NavIcon(Icons.radar_rounded, 0, selected: true),
+                        label: context.l10n.tabNearby,
                       ),
                     ],
                   ),
@@ -312,12 +311,12 @@ class _TopBar extends StatelessWidget {
       padding: EdgeInsetsDirectional.only(top: MediaQuery.paddingOf(context).top + 6, start: 4, end: 10, bottom: 6),
       child: Row(
         children: [
-          IconButton(tooltip: 'رجوع', onPressed: onBack, icon: const BackButtonIcon()),
+          IconButton(tooltip: context.l10n.back, onPressed: onBack, icon: const BackButtonIcon()),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('وَصْل', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.25)),
+                Text(context.l10n.appTitle, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.25)),
                 Row(
                   children: [
                     Container(
@@ -339,10 +338,10 @@ class _TopBar extends StatelessWidget {
                     Flexible(
                       child: Text(
                         !running
-                            ? 'بنجهّز...'
+                            ? context.l10n.preparing
                             : n == 0
-                                ? 'بندوّر على ناس حواليك'
-                                : '$n ${n == 1 ? 'شخص قريب' : n <= 10 ? 'أشخاص قريبين' : 'شخص قريب'}',
+                                ? context.l10n.searchingPeople
+                                : context.l10n.peopleNearby(n),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: p.textMuted, fontSize: 12.5, height: 1.4),
@@ -354,7 +353,7 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           IconButton.filledTonal(
-            tooltip: 'الإعدادات',
+            tooltip: context.l10n.settingsTitle,
             style: IconButton.styleFrom(backgroundColor: p.surface, foregroundColor: p.text),
             onPressed: () => SettingsScreen.open(context),
             icon: const Icon(Icons.tune_rounded),
@@ -395,7 +394,7 @@ class _LinkProblems extends StatelessWidget {
                   onPressed: l.retry,
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 42)),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('حاول تاني'),
+                  label: Text(context.l10n.tryAgain),
                 ),
               ],
             )
@@ -406,7 +405,7 @@ class _LinkProblems extends StatelessWidget {
                   onPressed: SystemBridge.openWifiSettings,
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 42)),
                   icon: const Icon(Icons.wifi_rounded, size: 18),
-                  label: const Text('افتح الواي فاي'),
+                  label: Text(context.l10n.openWifi),
                 ),
               ],
             ),
@@ -418,7 +417,7 @@ String _timeLabel(DateTime t) {
   final now = DateTime.now();
   String two(int v) => v.toString().padLeft(2, '0');
   if (t.year == now.year && t.month == now.month && t.day == now.day) return '${two(t.hour)}:${two(t.minute)}';
-  if (now.difference(t).inDays < 1) return 'أمس';
+  if (now.difference(t).inDays < 1) return tr.yesterday;
   return '${t.day}/${t.month}';
 }
 
@@ -432,37 +431,32 @@ class _ConversationTile extends StatelessWidget {
     final hub = ChatHub.instance;
     final c = conversation;
     final p = context.palette;
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(c.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded),
-                title: Text(c.pinned ? 'إلغاء التثبيت' : 'تثبيت فوق'),
-                onTap: () => Navigator.pop(ctx, 'pin'),
-              ),
-              ListTile(
-                leading: Icon(c.muted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined),
-                title: Text(c.muted ? 'إلغاء كتم الإشعارات' : 'كتم الإشعارات'),
-                onTap: () => Navigator.pop(ctx, 'mute'),
-              ),
-              ListTile(
-                leading: Icon(c.saved ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined),
-                title: Text(c.saved ? 'إلغاء حفظ المحادثة' : 'حفظ المحادثة على الموبايل'),
-                onTap: () => Navigator.pop(ctx, 'save'),
-              ),
-              ListTile(
-                leading: Icon(c.isGroup ? Icons.logout_rounded : Icons.delete_outline_rounded, color: p.danger),
-                title: Text(c.isGroup ? 'الخروج من الجروب' : 'حذف المحادثة', style: TextStyle(color: p.danger)),
-                onTap: () => Navigator.pop(ctx, 'delete'),
-              ),
-            ],
+    final action = await showActionSheet<String>(
+      context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(c.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded),
+            title: Text(c.pinned ? context.l10n.unpin : context.l10n.pin),
+            onTap: () => Navigator.pop(ctx, 'pin'),
           ),
-        ),
+          ListTile(
+            leading: Icon(c.muted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined),
+            title: Text(c.muted ? context.l10n.unmuteNotifications : context.l10n.muteNotifications),
+            onTap: () => Navigator.pop(ctx, 'mute'),
+          ),
+          ListTile(
+            leading: Icon(c.saved ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined),
+            title: Text(c.saved ? context.l10n.unsaveChat : context.l10n.saveChat),
+            onTap: () => Navigator.pop(ctx, 'save'),
+          ),
+          ListTile(
+            leading: Icon(c.isGroup ? Icons.logout_rounded : Icons.delete_outline_rounded, color: p.danger),
+            title: Text(c.isGroup ? context.l10n.leaveGroup : context.l10n.deleteChat, style: TextStyle(color: p.danger)),
+            onTap: () => Navigator.pop(ctx, 'delete'),
+          ),
+        ],
       ),
     );
     if (action == null || !context.mounted) return;
@@ -476,14 +470,14 @@ class _ConversationTile extends StatelessWidget {
     }
     if (action == 'save') {
       await hub.setSaved(c, !c.saved);
-      if (context.mounted) showToast(context, c.saved ? 'المحادثة بتتحفظ على الموبايل' : 'المحادثة مبقتش بتتحفظ');
+      if (context.mounted) showToast(context, c.saved ? context.l10n.chatSavedToast : context.l10n.chatUnsavedToast);
       return;
     }
     final ok = await confirmDialog(
       context,
-      title: c.isGroup ? 'الخروج من "${c.title}"؟' : 'حذف المحادثة مع ${c.title}؟',
-      message: 'الرسايل هتتمسح من موبايلك.',
-      confirm: c.isGroup ? 'خروج' : 'حذف',
+      title: c.isGroup ? context.l10n.leaveGroupTitle(c.title) : context.l10n.deleteChatTitle(c.title),
+      message: context.l10n.messagesErasedBody,
+      confirm: c.isGroup ? context.l10n.leave : context.l10n.deleteAction,
       destructive: true,
     );
     if (!ok) return;
@@ -507,13 +501,13 @@ class _ConversationTile extends StatelessWidget {
     String preview;
     if (typing) {
       final names = c.session.typingNames;
-      preview = names.isEmpty ? 'بيكتب...' : '${names.first} بيكتب...';
+      preview = names.isEmpty ? context.l10n.typing : context.l10n.nameTyping(names.first);
     } else if (last == null) {
-      preview = group != null ? 'جروب ${groupModeLabel(group.info.mode)}' : 'اضغط وابدأ الكلام';
+      preview = group != null ? context.l10n.groupOfMode(groupModeLabel(group.info.mode)) : context.l10n.tapToStart;
     } else {
       final text = ChatSession.previewOf(last);
       preview = last.kind == MessageKind.mine
-          ? 'إنت: $text'
+          ? context.l10n.youPrefix(text)
           : (group != null && last.sender != null ? '${last.sender}: $text' : text);
     }
     final requests = group?.requests.length ?? 0;
@@ -627,11 +621,11 @@ class _ChatsTab extends StatelessWidget {
     if (chats.isEmpty) {
       return EmptyState(
         icon: Icons.chat_bubble_outline_rounded,
-        title: 'لسه مفيش محادثات',
-        message: 'اختار حد أو جروب من القريبين وابدأ الكلام. التشفير بيتعمل تلقائي من غير كلمة سر.',
+        title: context.l10n.noChatsTitle,
+        message: context.l10n.noChatsBody,
         action: SizedBox(
           width: 230,
-          child: PrimaryButton(label: 'ابدأ محادثة جديدة', icon: Icons.edit_rounded, height: 50, onPressed: onNew),
+          child: PrimaryButton(label: context.l10n.startNewChat, icon: Icons.edit_rounded, height: 50, onPressed: onNew),
         ),
       );
     }
@@ -656,11 +650,11 @@ class _GroupsTab extends StatelessWidget {
     if (mine.isEmpty && nearby.isEmpty) {
       return EmptyState(
         icon: Icons.groups_outlined,
-        title: 'مفيش جروبات حواليك',
-        message: 'اعمل جروب عام لأي حد قريب، أو خاص بكلمة سر أو بموافقتك. الجروب بيظهر للكل طول ما فيه عضو قريب.',
+        title: context.l10n.noGroupsTitle,
+        message: context.l10n.noGroupsBody,
         action: SizedBox(
           width: 200,
-          child: PrimaryButton(label: 'اعمل جروب', icon: Icons.group_add_rounded, height: 50, onPressed: onCreate),
+          child: PrimaryButton(label: context.l10n.createGroup, icon: Icons.group_add_rounded, height: 50, onPressed: onCreate),
         ),
       );
     }
@@ -668,11 +662,11 @@ class _GroupsTab extends StatelessWidget {
       padding: const EdgeInsets.only(top: 0, bottom: 96),
       children: [
         if (mine.isNotEmpty) ...[
-          const Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: SectionLabel('جروباتي')),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: SectionLabel(context.l10n.myGroups)),
           for (final g in mine) _ConversationTile(key: ValueKey(g.id), conversation: g),
         ],
         if (nearby.isNotEmpty) ...[
-          const Padding(padding: EdgeInsets.symmetric(horizontal: 14), child: SectionLabel('جروبات حواليك')),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 14), child: SectionLabel(context.l10n.groupsAround)),
           for (final g in nearby)
             Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 10), child: _NearbyGroupCard(group: g)),
         ],
@@ -721,7 +715,7 @@ class _NearbyGroupCard extends StatelessWidget {
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  '${groupModeLabel(g.ad.mode)} • ${g.members} ${g.members == 1 ? 'عضو قريب' : 'أعضاء قريبين'}',
+                                  '${groupModeLabel(g.ad.mode)} • ${context.l10n.membersNearby(g.members)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(color: p.textMuted, fontSize: 12.5),
@@ -741,10 +735,10 @@ class _NearbyGroupCard extends StatelessWidget {
                       ),
                       child: Text(
                         hub.pendingJoins.contains(g.ad.id)
-                            ? 'مستني'
+                            ? context.l10n.waiting
                             : g.ad.mode == GroupMode.ask
-                                ? 'اطلب'
-                                : 'ادخل',
+                                ? context.l10n.requestJoin
+                                : context.l10n.join,
                         style: TextStyle(
                           color: hub.pendingJoins.contains(g.ad.id) ? p.textMuted : p.accent,
                           fontWeight: FontWeight.w700,
@@ -781,7 +775,7 @@ class _PeopleTabState extends State<_PeopleTab> {
   Future<void> _connectManual(LanLink lan) async {
     final ip = _ip.text.trim();
     if (InternetAddress.tryParse(ip) == null) {
-      showToast(context, 'اكتب العنوان بالشكل ده: 192.168.1.5', error: true);
+      showToast(context, context.l10n.ipFormat, error: true);
       return;
     }
     hideKeyboard();
@@ -789,7 +783,7 @@ class _PeopleTabState extends State<_PeopleTab> {
     final ok = await lan.connectToAddress(ip);
     if (!mounted) return;
     setState(() => _dialing = false);
-    showToast(context, ok ? 'اتوصلنا — هيظهر في القايمة دلوقتي' : 'مفيش رد من العنوان ده', error: !ok);
+    showToast(context, ok ? context.l10n.ipConnected : context.l10n.errNoReplyTitle, error: !ok);
   }
 
   @override
@@ -811,21 +805,21 @@ class _PeopleTabState extends State<_PeopleTab> {
           const SizedBox(height: 18),
           Center(child: RadarPulse(icon: widget.isWifi ? Icons.wifi_rounded : Icons.bluetooth_searching_rounded)),
           const SizedBox(height: 14),
-          const Text(
-            'بندوّر على ناس حواليك',
+          Text(
+            context.l10n.searchingPeople,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
             widget.isWifi
-                ? 'أي حد فاتح Wasl على نفس الواي فاي (أو متوصل بالهوت سبوت بتاعك) هيظهر هنا لوحده.'
-                : 'أي حد قريب فاتح Wasl على البلوتوث هيظهر هنا لوحده. البحث بياخد من ثواني لدقيقة.',
+                ? context.l10n.searchWifiHint
+                : context.l10n.searchBtHint,
             textAlign: TextAlign.center,
             style: TextStyle(color: p.textMuted, height: 1.7),
           ),
         ] else ...[
-          SectionLabel('أشخاص — اضغط على أي حد عشان تكلمه (${people.length})'),
+          SectionLabel(context.l10n.peopleTapToTalk(people.length)),
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -846,7 +840,7 @@ class _PeopleTabState extends State<_PeopleTab> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'الأجهزة بتوصّل لبعض: ممكن تكلم حد بعيد عنك عن طريق موبايلات في النص، ومحدش منهم يقدر يقرا رسايلك.',
+                    context.l10n.meshHint,
                     style: TextStyle(color: p.textMuted, fontSize: 12.5, height: 1.6),
                   ),
                 ),
@@ -855,7 +849,7 @@ class _PeopleTabState extends State<_PeopleTab> {
           ),
         ],
         if (groups.isNotEmpty) ...[
-          SectionLabel('جروبات حواليك (${groups.length})'),
+          SectionLabel(context.l10n.groupsAroundCount(groups.length)),
           for (final g in groups)
             Padding(padding: const EdgeInsets.only(bottom: 10), child: _NearbyGroupCard(group: g)),
         ],
@@ -869,10 +863,10 @@ class _PeopleTabState extends State<_PeopleTab> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Text('اتصال بالعنوان', style: TextStyle(fontWeight: FontWeight.w700)),
+                        Text(context.l10n.connectByAddress, style: const TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Text(
-                          'لو الشبكة مانعة الاكتشاف التلقائي (زي بعض شبكات الكافيهات). عنوانك: ${lan.localAddresses.join(' ، ')}',
+                          context.l10n.connectByAddressHint(lan.localAddresses.join(context.l10n.listSeparator)),
                           style: TextStyle(color: p.textMuted, fontSize: 12.5, height: 1.6),
                         ),
                         const SizedBox(height: 10),
@@ -881,12 +875,12 @@ class _PeopleTabState extends State<_PeopleTab> {
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           textDirection: TextDirection.ltr,
                           textAlign: TextAlign.center,
-                          decoration: const InputDecoration(hintText: 'عنوان الجهاز التاني'),
+                          decoration: InputDecoration(hintText: context.l10n.otherDeviceAddress),
                           onSubmitted: (_) => _connectManual(lan),
                         ),
                         const SizedBox(height: 10),
                         PrimaryButton(
-                          label: 'اتصل',
+                          label: context.l10n.connect,
                           icon: Icons.link_rounded,
                           height: 48,
                           loading: _dialing,
@@ -899,7 +893,7 @@ class _PeopleTabState extends State<_PeopleTab> {
                     child: TextButton.icon(
                       onPressed: () => setState(() => _manual = true),
                       icon: const Icon(Icons.edit_note_rounded),
-                      label: const Text('حد مش ظاهر؟ اتصل بعنوانه'),
+                      label: Text(context.l10n.someoneMissing),
                     ),
                   ),
           ),
@@ -947,8 +941,8 @@ class _PersonRow extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         relays == 0
-                            ? 'متصل بيك مباشرة'
-                            : 'عن طريق ${relays == 1 ? 'جهاز واحد' : relays == 2 ? 'جهازين' : '$relays أجهزة'} في النص',
+                            ? context.l10n.connectedDirectly
+                            : context.l10n.viaRelays(relays),
                         style: TextStyle(color: p.textMuted, fontSize: 12.5),
                       ),
                     ],
@@ -978,10 +972,10 @@ class _RequirementsView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        const Text('خطوة واحدة قبل ما نبدأ', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w700)),
+        Text(context.l10n.oneStepTitle, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         Text(
-          'البلوتوث بيشتغل من غير إنترنت، وعشان الموبايلات تلاقي بعض محتاجين الحاجات دي:',
+          context.l10n.oneStepBody,
           style: TextStyle(color: p.textMuted, height: 1.6),
         ),
         const SizedBox(height: 18),
@@ -1002,7 +996,7 @@ class _RequirementsView extends StatelessWidget {
                       if (r.state == RequirementState.blocked) ...[
                         const SizedBox(height: 6),
                         Text(
-                          'الإذن ده اترفض قبل كده — فعّله من الإعدادات ← الأذونات.',
+                          context.l10n.permissionBlockedHint,
                           style: TextStyle(color: p.warning, fontSize: 12.5, fontWeight: FontWeight.w600),
                         ),
                       ],

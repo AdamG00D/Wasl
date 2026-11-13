@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/l10n.dart';
+
 /// لون التطبيق الأساسي (المستخدم بيختاره من الإعدادات).
 class AccentTheme {
-  const AccentTheme(this.id, this.label, this.light, this.lightSecond, this.dark, this.darkSecond);
+  const AccentTheme(this.id, this.light, this.lightSecond, this.dark, this.darkSecond);
 
   final String id;
-  final String label;
   final Color light;
   final Color lightSecond;
   final Color dark;
@@ -16,15 +17,26 @@ class AccentTheme {
   Color second(Brightness b) => b == Brightness.dark ? darkSecond : lightSecond;
 
   static const all = <AccentTheme>[
-    AccentTheme('indigo', 'نيلي', Color(0xFF4F46E5), Color(0xFF7C3AED), Color(0xFF818CF8), Color(0xFFA78BFA)),
-    AccentTheme('teal', 'فيروزي', Color(0xFF0D9488), Color(0xFF0891B2), Color(0xFF2DD4BF), Color(0xFF22D3EE)),
-    AccentTheme('emerald', 'أخضر', Color(0xFF059669), Color(0xFF65A30D), Color(0xFF34D399), Color(0xFFA3E635)),
-    AccentTheme('coral', 'مرجاني', Color(0xFFE11D48), Color(0xFFEA580C), Color(0xFFFB7185), Color(0xFFFB923C)),
-    AccentTheme('amber', 'كهرماني', Color(0xFFD97706), Color(0xFFDC2626), Color(0xFFFBBF24), Color(0xFFF87171)),
-    AccentTheme('sky', 'سماوي', Color(0xFF0284C7), Color(0xFF4F46E5), Color(0xFF38BDF8), Color(0xFF818CF8)),
-    AccentTheme('pink', 'وردي', Color(0xFFDB2777), Color(0xFF9333EA), Color(0xFFF472B6), Color(0xFFC084FC)),
-    AccentTheme('graphite', 'رمادي', Color(0xFF334155), Color(0xFF0F172A), Color(0xFFCBD5E1), Color(0xFF94A3B8)),
+    AccentTheme('indigo', Color(0xFF4F46E5), Color(0xFF7C3AED), Color(0xFF818CF8), Color(0xFFA78BFA)),
+    AccentTheme('teal', Color(0xFF0D9488), Color(0xFF0891B2), Color(0xFF2DD4BF), Color(0xFF22D3EE)),
+    AccentTheme('emerald', Color(0xFF059669), Color(0xFF65A30D), Color(0xFF34D399), Color(0xFFA3E635)),
+    AccentTheme('coral', Color(0xFFE11D48), Color(0xFFEA580C), Color(0xFFFB7185), Color(0xFFFB923C)),
+    AccentTheme('amber', Color(0xFFD97706), Color(0xFFDC2626), Color(0xFFFBBF24), Color(0xFFF87171)),
+    AccentTheme('sky', Color(0xFF0284C7), Color(0xFF4F46E5), Color(0xFF38BDF8), Color(0xFF818CF8)),
+    AccentTheme('pink', Color(0xFFDB2777), Color(0xFF9333EA), Color(0xFFF472B6), Color(0xFFC084FC)),
+    AccentTheme('graphite', Color(0xFF334155), Color(0xFF0F172A), Color(0xFFCBD5E1), Color(0xFF94A3B8)),
   ];
+
+  String label(AppLocalizations l) => switch (id) {
+        'teal' => l.colorTeal,
+        'emerald' => l.colorEmerald,
+        'coral' => l.colorCoral,
+        'amber' => l.colorAmber,
+        'sky' => l.colorSky,
+        'pink' => l.colorPink,
+        'graphite' => l.colorGraphite,
+        _ => l.colorIndigo,
+      };
 
   static AccentTheme byId(String? id) => all.firstWhere((a) => a.id == id, orElse: () => all.first);
 }

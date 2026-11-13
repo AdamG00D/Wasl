@@ -5,6 +5,7 @@ import '../../core/nav.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/storage/vault.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../hub/chat_hub.dart';
 
 /// قفل التطبيق برقم سري (اختياري — مقفول افتراضياً).
@@ -93,7 +94,8 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<void> _bio() async {
-    final ok = await Vault.biometricAuth(title: 'افتح Wasl', subtitle: 'بصمتك بدل الرقم السري');
+    final l = context.l10n;
+    final ok = await Vault.biometricAuth(title: l.lockBioTitle, subtitle: l.lockBioSubtitle);
     if (ok && mounted) _done();
   }
 
@@ -155,14 +157,14 @@ class _LockScreenState extends State<LockScreen> {
               ),
               const SizedBox(height: 18),
               Text(
-                call ? 'مكالمة واردة — افتح القفل' : 'اكتب الرقم السري',
+                call ? context.l10n.lockIncomingCall : context.l10n.lockEnterPin,
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
               AnimatedOpacity(
                 opacity: _wrong ? 1 : 0,
                 duration: const Duration(milliseconds: 150),
-                child: Text('الرقم غلط — جرّب تاني', style: TextStyle(color: p.danger, fontWeight: FontWeight.w600)),
+                child: Text(context.l10n.lockWrongPin, style: TextStyle(color: p.danger, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 18),
               SizedBox(

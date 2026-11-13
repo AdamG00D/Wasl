@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../core/chat_session.dart';
 
 /// رسالة صوتية اتسجلت.
@@ -291,7 +292,7 @@ class VoiceBubbleContent extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       media.failed
-                          ? (media.failReason ?? 'موصلتش')
+                          ? (media.failReason ?? context.l10n.notDelivered)
                           : ChatSession.formatDuration(shown.inMilliseconds),
                       style: TextStyle(color: fg.withValues(alpha: 0.7), fontSize: 11),
                     ),

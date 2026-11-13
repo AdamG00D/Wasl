@@ -20,7 +20,8 @@ nearby talk directly over **Bluetooth** or the same **Wi-Fi / hotspot**, and rel
 automatically — no accounts, no phone numbers, no passwords.
 
 Built for places where the network is down, overloaded or untrusted: protests, festivals, trips, campuses, power
-cuts. The interface is in Arabic (English is planned).
+cuts. The interface is in Arabic and English — it follows
+the phone's language, and you can switch it in Settings.
 
 ## Screenshots
 

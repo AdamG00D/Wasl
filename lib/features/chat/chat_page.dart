@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../core/platform/secure_clipboard.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import '../../mesh/mesh_router.dart';
 import '../../widgets/feedback.dart';
 import '../../widgets/focus_guard.dart';
@@ -94,7 +95,7 @@ class _ChatPageState extends State<ChatPage> {
     if (chat is DirectChat && chat.canCall && _s.state == SessionState.ready) {
       await _startCall(video: video);
     } else {
-      showToast(context, 'معرفناش نبدأ المكالمة دلوقتي', error: true);
+      showToast(context, context.l10n.callStartNow, error: true);
     }
   }
 
@@ -119,7 +120,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _jumpTo(String id) async {
     final index = _s.messages.indexWhere((m) => m.id == id);
     if (index < 0) {
-      showToast(context, 'الرسالة دي مبقتش موجودة');
+      showToast(context, context.l10n.messageGone);
       return;
     }
     for (var step = 0; step < 80; step++) {
@@ -224,7 +225,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _forward(ChatMessage m) async {
     final targets = _hub.conversations.where((c) => c.session.canSend).toList();
     if (targets.isEmpty) {
-      showToast(context, 'مفيش محادثة متصلة دلوقتي تحوّل ليها', error: true);
+      showToast(context, context.l10n.noForwardTarget, error: true);
       return;
     }
     final to = await showModalBottomSheet<Conversation>(
@@ -237,9 +238,9 @@ class _ChatPageState extends State<ChatPage> {
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: Text('تحويل لـ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Text(ctx.l10n.forwardTo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               ),
               for (final c in targets)
                 ListTile(
@@ -252,7 +253,7 @@ class _ChatPageState extends State<ChatPage> {
                     icon: c.isGroup ? Icons.groups_rounded : null,
                   ),
                   title: Text(c.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(c.isGroup ? 'جروب' : 'محادثة خاصة'),
+                  subtitle: Text(c.isGroup ? ctx.l10n.group : ctx.l10n.privateChat),
                   onTap: () => Navigator.pop(ctx, c),
                 ),
             ],
@@ -275,7 +276,7 @@ class _ChatPageState extends State<ChatPage> {
         forwarded: true,
       );
     }
-    if (mounted) showToast(context, error ?? 'اتحوّلت لـ ${to.title}', error: error != null);
+    if (mounted) showToast(context, error ?? context.l10n.forwardedTo(to.title), error: error != null);
   }
 
   /// معلومات رسالتي: وقتها وحالتها، وفي الجروب مين قراها.
@@ -286,17 +287,18 @@ class _ChatPageState extends State<ChatPage> {
     String two(int v) => v.toString().padLeft(2, '0');
     final t = m.time;
     final when = '${t.day}/${t.month}/${t.year}  ${two(t.hour)}:${two(t.minute)}';
-    final readers = [for (final id in m.readBy) _hub.nameOf(id) ?? 'عضو'];
+    final l = context.l10n;
+    final readers = [for (final id in m.readBy) _hub.nameOf(id) ?? l.member];
     final waiting = [
       for (final n in group?.members ?? const <MeshNode>[])
         if (!m.readBy.contains(n.id) && !group!.info.banned.contains(n.id)) n.name,
     ];
     final status = switch (m.status) {
-      MessageStatus.sending => 'بتتبعت...',
-      MessageStatus.sent => group != null ? 'اتبعتت' : 'اتبعتت ولسه موصلتش',
-      MessageStatus.delivered => group != null ? 'حد قراها' : 'وصلت',
-      MessageStatus.read => group != null ? 'كل المتصلين قروها' : 'اتقرت',
-      MessageStatus.failed => 'متبعتتش',
+      MessageStatus.sending => l.statusSending,
+      MessageStatus.sent => group != null ? l.statusSentGroup : l.statusSent,
+      MessageStatus.delivered => group != null ? l.statusDeliveredGroup : l.statusDelivered,
+      MessageStatus.read => group != null ? l.statusReadGroup : l.statusRead,
+      MessageStatus.failed => l.statusFailed,
     };
     await showModalBottomSheet<void>(
       context: context,
@@ -308,27 +310,27 @@ class _ChatPageState extends State<ChatPage> {
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             children: [
-              const Text('معلومات الرسالة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(l.messageInfo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               const SizedBox(height: 10),
               _InfoLine(icon: Icons.schedule_rounded, text: when),
               _InfoLine(icon: Icons.done_all_rounded, text: status),
               if (group != null) ...[
                 const SizedBox(height: 10),
                 Text(
-                  'قروها (${readers.length})',
+                  l.readByCount(readers.length),
                   style: TextStyle(color: p.textMuted, fontWeight: FontWeight.w600, fontSize: 13),
                 ),
                 if (readers.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text('لسه محدش', style: TextStyle(color: p.textMuted)),
+                    child: Text(l.nobodyYet, style: TextStyle(color: p.textMuted)),
                   ),
                 for (final name in readers)
                   _InfoLine(icon: Icons.done_all_rounded, text: name, color: readTickColor(p)),
                 if (waiting.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Text(
-                    'متصلين ولسه مقروهاش (${waiting.length})',
+                    l.onlineNotReadCount(waiting.length),
                     style: TextStyle(color: p.textMuted, fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   for (final name in waiting) _InfoLine(icon: Icons.done_rounded, text: name),
@@ -345,7 +347,7 @@ class _ChatPageState extends State<ChatPage> {
     final c = _c;
     final id = m.senderId;
     if (c is! GroupChat || id == null) return;
-    final name = _hub.nodeFor(id)?.name ?? m.sender ?? 'عضو';
+    final name = _hub.nodeFor(id)?.name ?? m.sender ?? context.l10n.member;
     showMemberSheet(
       context,
       c,
@@ -394,8 +396,8 @@ class _ChatPageState extends State<ChatPage> {
         context,
         icon: Icons.gpp_bad_rounded,
         error: true,
-        title: 'الرمز مختلف؟',
-        message: 'ده معناه إن ممكن حد منتحل شخصية الطرف التاني. متبعتش حاجة حساسة، واحظره من القايمة لو مش متأكد منه.',
+        title: context.l10n.codeMismatchTitle,
+        message: context.l10n.codeMismatchBody,
       );
     }
   }
@@ -406,17 +408,17 @@ class _ChatPageState extends State<ChatPage> {
       final ok = await confirmDialog(
         context,
         icon: Icons.bookmark_remove_rounded,
-        title: 'إلغاء حفظ المحادثة؟',
-        message: 'الرسايل هتتمسح من تخزين الموبايل، وهتفضل قدامك لحد ما تقفل التطبيق بس.',
-        confirm: 'إلغاء الحفظ',
+        title: context.l10n.unsaveChatTitle,
+        message: context.l10n.unsaveChatBody,
+        confirm: context.l10n.unsaveConfirm,
         destructive: true,
       );
       if (!ok) return;
       await _hub.setSaved(c, false);
-      if (mounted) showToast(context, 'المحادثة مبقتش بتتحفظ');
+      if (mounted) showToast(context, context.l10n.chatUnsavedToast);
     } else {
       await _hub.setSaved(c, true);
-      if (mounted) showToast(context, 'المحادثة بتتحفظ على الموبايل (مشفّرة)');
+      if (mounted) showToast(context, context.l10n.chatSavedEncryptedToast);
     }
   }
 
@@ -438,9 +440,9 @@ class _ChatPageState extends State<ChatPage> {
       case 'clear':
         final ok = await confirmDialog(
           context,
-          title: 'مسح الرسايل؟',
-          message: 'الرسايل هتتمسح من عندك بس.',
-          confirm: 'مسح',
+          title: context.l10n.clearTitle,
+          message: context.l10n.clearBody,
+          confirm: context.l10n.clear,
           destructive: true,
         );
         if (ok) await _hub.clearMessages(c);
@@ -451,9 +453,9 @@ class _ChatPageState extends State<ChatPage> {
           final ok = await confirmDialog(
             context,
             icon: Icons.block_rounded,
-            title: 'حظر ${c.title}؟',
-            message: 'مش هيقدر يبعتلك رسايل ولا هيظهر في القريبين. تقدر تلغي الحظر من الإعدادات.',
-            confirm: 'حظر',
+            title: context.l10n.blockTitle(c.title),
+            message: context.l10n.blockDirectBody,
+            confirm: context.l10n.block,
             destructive: true,
           );
           if (!ok) return;
@@ -464,9 +466,9 @@ class _ChatPageState extends State<ChatPage> {
         if (c is! DirectChat) return;
         final ok = await confirmDialog(
           context,
-          title: 'حذف المحادثة؟',
-          message: 'المحادثة ورسايلها هتتمسح من موبايلك.',
-          confirm: 'حذف',
+          title: context.l10n.deleteChatQ,
+          message: context.l10n.deleteChatBody,
+          confirm: context.l10n.deleteAction,
           destructive: true,
         );
         if (!ok) return;
@@ -476,9 +478,9 @@ class _ChatPageState extends State<ChatPage> {
         if (c is! GroupChat) return;
         final ok = await confirmDialog(
           context,
-          title: 'الخروج من "${c.title}"؟',
-          message: 'رسايل الجروب هتتمسح من موبايلك.',
-          confirm: 'خروج',
+          title: context.l10n.leaveGroupTitle(c.title),
+          message: context.l10n.groupMessagesErased,
+          confirm: context.l10n.leave,
           destructive: true,
         );
         if (!ok) return;
@@ -495,113 +497,108 @@ class _ChatPageState extends State<ChatPage> {
     final s = _s;
     final mine = m.kind == MessageKind.mine;
     final group = _c.isGroup;
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (s.canSend)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final e in _quickReactions)
-                        InkWell(
-                          borderRadius: BorderRadius.circular(22),
-                          onTap: () => Navigator.pop(ctx, 'react:$e'),
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: m.reactions[s.myReactionKey] == e ? p.accentSoft : Colors.transparent,
-                            ),
-                            child: Text(e, style: const TextStyle(fontSize: 25)),
-                          ),
+    final action = await showActionSheet<String>(
+      context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (s.canSend)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final e in _quickReactions)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(22),
+                      onTap: () => Navigator.pop(ctx, 'react:$e'),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: m.reactions[s.myReactionKey] == e ? p.accentSoft : Colors.transparent,
                         ),
-                      IconButton(
-                        tooltip: 'إيموجي تاني',
-                        onPressed: () => Navigator.pop(ctx, 'react+'),
-                        icon: Icon(Icons.add_circle_outline_rounded, color: p.textMuted),
+                        child: Text(e, style: const TextStyle(fontSize: 25)),
                       ),
-                    ],
+                    ),
+                  IconButton(
+                    tooltip: ctx.l10n.otherEmoji,
+                    onPressed: () => Navigator.pop(ctx, 'react+'),
+                    icon: Icon(Icons.add_circle_outline_rounded, color: p.textMuted),
                   ),
-                ),
-              if (s.canSend)
-                ListTile(
-                  leading: const Icon(Icons.reply_rounded),
-                  title: const Text('رد'),
-                  onTap: () => Navigator.pop(ctx, 'reply'),
-                ),
-              if (!m.transferring && (m.media == null || m.media!.ready))
-                ListTile(
-                  leading: const Icon(Icons.shortcut_rounded),
-                  title: const Text('تحويل'),
-                  onTap: () => Navigator.pop(ctx, 'forward'),
-                ),
-              if (mine)
-                ListTile(
-                  leading: const Icon(Icons.info_outline_rounded),
-                  title: const Text('معلومات الرسالة'),
-                  onTap: () => Navigator.pop(ctx, 'info'),
-                ),
-              if (m.media == null)
-                ListTile(
-                  leading: const Icon(Icons.copy_rounded),
-                  title: const Text('نسخ'),
-                  onTap: () => Navigator.pop(ctx, 'copy'),
-                ),
-              if (group && !mine && m.senderId != null && _hub.nodeFor(m.senderId!) != null)
-                ListTile(
-                  leading: const Icon(Icons.lock_person_rounded),
-                  title: Text('رسالة خاصة لـ ${m.sender ?? ''}'),
-                  onTap: () => Navigator.pop(ctx, 'private'),
-                ),
-              if (group && !mine && m.senderId != null && s.canSend)
-                ListTile(
-                  leading: const Icon(Icons.alternate_email_rounded),
-                  title: Text('منشن لـ ${m.sender ?? ''}'),
-                  onTap: () => Navigator.pop(ctx, 'mention'),
-                ),
-              if (s.canEdit(m))
-                ListTile(
-                  leading: const Icon(Icons.edit_rounded),
-                  title: const Text('تعديل'),
-                  onTap: () => Navigator.pop(ctx, 'edit'),
-                ),
-              if (m.transferring)
-                ListTile(
-                  leading: Icon(Icons.cancel_rounded, color: p.danger),
-                  title: Text(mine ? 'إلغاء الإرسال' : 'إلغاء الاستلام', style: TextStyle(color: p.danger)),
-                  onTap: () => Navigator.pop(ctx, 'cancel'),
-                ),
-              if (!m.transferring && _hub.canDeleteForAll(_c, m))
-                ListTile(
-                  leading: Icon(Icons.delete_sweep_rounded, color: p.danger),
-                  title: Text(
-                    !group
-                        ? 'حذف عندي وعنده'
-                        : mine
-                        ? 'حذف عند الكل'
-                        : 'حذف عند الكل (إنت مدير)',
-                    style: TextStyle(color: p.danger),
-                  ),
-                  onTap: () => Navigator.pop(ctx, 'del-all'),
-                ),
-              if (!m.transferring)
-                ListTile(
-                  leading: Icon(Icons.delete_outline_rounded, color: p.danger),
-                  title: Text('حذف عندي بس', style: TextStyle(color: p.danger)),
-                  onTap: () => Navigator.pop(ctx, 'del-me'),
-                ),
-            ],
-          ),
-        ),
+                ],
+              ),
+            ),
+          if (s.canSend)
+            ListTile(
+              leading: const Icon(Icons.reply_rounded),
+              title: Text(ctx.l10n.reply),
+              onTap: () => Navigator.pop(ctx, 'reply'),
+            ),
+          if (!m.transferring && (m.media == null || m.media!.ready))
+            ListTile(
+              leading: const Icon(Icons.shortcut_rounded),
+              title: Text(ctx.l10n.forward),
+              onTap: () => Navigator.pop(ctx, 'forward'),
+            ),
+          if (mine)
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: Text(ctx.l10n.messageInfo),
+              onTap: () => Navigator.pop(ctx, 'info'),
+            ),
+          if (m.media == null)
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: Text(ctx.l10n.copy),
+              onTap: () => Navigator.pop(ctx, 'copy'),
+            ),
+          if (group && !mine && m.senderId != null && _hub.nodeFor(m.senderId!) != null)
+            ListTile(
+              leading: const Icon(Icons.lock_person_rounded),
+              title: Text(ctx.l10n.privateMessageTo(m.sender ?? '')),
+              onTap: () => Navigator.pop(ctx, 'private'),
+            ),
+          if (group && !mine && m.senderId != null && s.canSend)
+            ListTile(
+              leading: const Icon(Icons.alternate_email_rounded),
+              title: Text(ctx.l10n.mentionName(m.sender ?? '')),
+              onTap: () => Navigator.pop(ctx, 'mention'),
+            ),
+          if (s.canEdit(m))
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: Text(ctx.l10n.edit),
+              onTap: () => Navigator.pop(ctx, 'edit'),
+            ),
+          if (m.transferring)
+            ListTile(
+              leading: Icon(Icons.cancel_rounded, color: p.danger),
+              title: Text(mine ? ctx.l10n.cancelSending : ctx.l10n.cancelReceiving, style: TextStyle(color: p.danger)),
+              onTap: () => Navigator.pop(ctx, 'cancel'),
+            ),
+          if (!m.transferring && _hub.canDeleteForAll(_c, m))
+            ListTile(
+              leading: Icon(Icons.delete_sweep_rounded, color: p.danger),
+              title: Text(
+                !group
+                    ? ctx.l10n.deleteForBoth
+                    : mine
+                    ? ctx.l10n.deleteForAll
+                    : ctx.l10n.deleteForAllAdmin,
+                style: TextStyle(color: p.danger),
+              ),
+              onTap: () => Navigator.pop(ctx, 'del-all'),
+            ),
+          if (!m.transferring)
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: p.danger),
+              title: Text(ctx.l10n.deleteForMe, style: TextStyle(color: p.danger)),
+              onTap: () => Navigator.pop(ctx, 'del-me'),
+            ),
+        ],
       ),
     );
     if (action == null || !mounted) return;
@@ -625,7 +622,7 @@ class _ChatPageState extends State<ChatPage> {
         final chat = _hub.openDirect(m.senderId!);
         if (chat != null) await ChatPage.open(context, chat);
       case 'mention':
-        _inputKey.currentState?.insertMention(m.senderId!, _hub.nodeFor(m.senderId!)?.name ?? m.sender ?? 'عضو');
+        _inputKey.currentState?.insertMention(m.senderId!, _hub.nodeFor(m.senderId!)?.name ?? m.sender ?? context.l10n.member);
       case 'edit':
         final text = await _editDialog(m.text);
         if (text != null) await s.edit(m, text);
@@ -643,7 +640,7 @@ class _ChatPageState extends State<ChatPage> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تعديل الرسالة'),
+        title: Text(ctx.l10n.editMessage),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -653,11 +650,11 @@ class _ChatPageState extends State<ChatPage> {
           buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.l10n.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(90, 44)),
             onPressed: () => Navigator.pop(ctx, ctrl.text),
-            child: const Text('حفظ'),
+            child: Text(ctx.l10n.save),
           ),
         ],
       ),
@@ -684,34 +681,35 @@ class _ChatPageState extends State<ChatPage> {
             final alive = _alive;
             final wifi = _hub.kind != TransportKind.bluetooth;
             final typers = s.typingNames;
+            final l = context.l10n;
             final typingLabel = typers.isEmpty
                 ? null
                 : typers.length == 1
-                ? '${typers[0]} بيكتب'
+                ? l.typingOne(typers[0])
                 : typers.length == 2
-                ? '${typers[0]} و${typers[1]} بيكتبوا'
-                : '${typers.length} بيكتبوا';
+                ? l.typingTwo(typers[0], typers[1])
+                : l.typingMany(typers.length);
 
             final (String label, Color color, IconData? icon) = () {
-              if (!alive) return ('المحادثة اتقفلت', p.textMuted, Icons.link_off_rounded);
+              if (!alive) return (l.chatClosed, p.textMuted, Icons.link_off_rounded);
               if (group != null) {
                 if (typingLabel != null) return ('$typingLabel...', p.accent, null);
                 final n = group.members.length;
                 return (
-                  n == 0 ? 'مفيش حد من الأعضاء قريب دلوقتي' : '$n ${n == 1 ? 'عضو' : 'أعضاء'} متصلين دلوقتي',
+                  n == 0 ? l.noMembersNearby : l.membersOnline(n),
                   n == 0 ? p.textMuted : p.success,
                   group.info.mode == GroupMode.open ? Icons.public_rounded : Icons.lock_rounded,
                 );
               }
               final d = direct!;
-              if (_hub.isBlocked(d.peerId)) return ('محظور', p.danger, Icons.block_rounded);
-              if (s.peerTyping && s.state == SessionState.ready) return ('بيكتب...', p.accent, null);
+              if (_hub.isBlocked(d.peerId)) return (l.blocked, p.danger, Icons.block_rounded);
+              if (s.peerTyping && s.state == SessionState.ready) return (l.typing, p.accent, null);
               return switch (s.state) {
-                SessionState.ready when s.verified => ('مشفّرة • الرمز متأكد', p.success, Icons.verified_user_rounded),
-                SessionState.ready => ('مشفّرة من طرف لطرف', p.success, Icons.lock_rounded),
-                SessionState.securing => ('بنأمّن الاتصال...', p.warning, Icons.lock_clock_rounded),
-                _ when d.online => ('جاري الاتصال...', p.warning, Icons.sync_rounded),
-                _ => ('مش متصل دلوقتي', p.textMuted, Icons.cloud_off_rounded),
+                SessionState.ready when s.verified => (l.encryptedVerified, p.success, Icons.verified_user_rounded),
+                SessionState.ready => (l.e2eEncrypted, p.success, Icons.lock_rounded),
+                SessionState.securing => (l.securing, p.warning, Icons.lock_clock_rounded),
+                _ when d.online => (l.connecting, p.warning, Icons.sync_rounded),
+                _ => (l.notConnectedNow, p.textMuted, Icons.cloud_off_rounded),
               };
             }();
 
@@ -739,13 +737,13 @@ class _ChatPageState extends State<ChatPage> {
                     actions: [
                       if (direct != null && direct.canCall && s.state == SessionState.ready) ...[
                         IconButton(
-                          tooltip: 'مكالمة فيديو',
+                          tooltip: l.videoCall,
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.videocam_rounded, color: p.accent),
                           onPressed: () => _startCall(video: true),
                         ),
                         IconButton(
-                          tooltip: 'مكالمة صوتية',
+                          tooltip: l.voiceCall,
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.call_rounded, color: p.accent),
                           onPressed: () => _startCall(video: false),
@@ -753,7 +751,7 @@ class _ChatPageState extends State<ChatPage> {
                       ],
                       if (group != null && group.requests.isNotEmpty)
                         IconButton(
-                          tooltip: 'طلبات انضمام',
+                          tooltip: l.joinRequestsTooltip,
                           visualDensity: VisualDensity.compact,
                           onPressed: () => GroupInfoScreen.open(context, group),
                           icon: Badge(
@@ -766,51 +764,51 @@ class _ChatPageState extends State<ChatPage> {
                           icon: Icon(Icons.more_vert_rounded, color: p.textMuted),
                           onSelected: _menu,
                           itemBuilder: (_) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'search',
-                              child: _MenuRow(icon: Icons.search_rounded, text: 'بحث في المحادثة'),
+                              child: _MenuRow(icon: Icons.search_rounded, text: l.searchChat),
                             ),
                             PopupMenuItem(
                               value: 'mute',
                               child: _MenuRow(
                                 icon: c.muted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
-                                text: c.muted ? 'إلغاء كتم الإشعارات' : 'كتم الإشعارات',
+                                text: c.muted ? l.unmuteNotifications : l.muteNotifications,
                               ),
                             ),
                             PopupMenuItem(
                               value: 'pin',
                               child: _MenuRow(
                                 icon: c.pinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
-                                text: c.pinned ? 'إلغاء التثبيت' : 'تثبيت فوق',
+                                text: c.pinned ? l.unpin : l.pin,
                               ),
                             ),
                             PopupMenuItem(
                               value: 'save',
                               child: _MenuRow(
                                 icon: c.saved ? Icons.bookmark_remove_outlined : Icons.bookmark_add_outlined,
-                                text: c.saved ? 'إلغاء حفظ المحادثة' : 'حفظ المحادثة على الموبايل',
+                                text: c.saved ? l.unsaveChat : l.saveChat,
                               ),
                             ),
                             if (group != null)
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'info',
-                                child: _MenuRow(icon: Icons.groups_2_outlined, text: 'الأعضاء ومعلومات الجروب'),
+                                child: _MenuRow(icon: Icons.groups_2_outlined, text: l.membersAndInfo),
                               ),
                             if (direct != null && s.safetyCode != null)
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'code',
-                                child: _MenuRow(icon: Icons.verified_user_outlined, text: 'رمز الأمان (اختياري)'),
+                                child: _MenuRow(icon: Icons.verified_user_outlined, text: l.safetyCodeOptional),
                               ),
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'clear',
-                              child: _MenuRow(icon: Icons.cleaning_services_outlined, text: 'مسح الرسايل'),
+                              child: _MenuRow(icon: Icons.cleaning_services_outlined, text: l.clearMessages),
                             ),
                             if (direct != null)
                               PopupMenuItem(
                                 value: 'block',
                                 child: _MenuRow(
                                   icon: Icons.block_rounded,
-                                  text: _hub.isBlocked(direct.peerId) ? 'إلغاء الحظر' : 'حظر',
+                                  text: _hub.isBlocked(direct.peerId) ? l.unblock : l.block,
                                 ),
                               ),
                             if (direct != null)
@@ -818,14 +816,14 @@ class _ChatPageState extends State<ChatPage> {
                                 value: 'delete',
                                 child: _MenuRow(
                                   icon: Icons.delete_outline_rounded,
-                                  text: 'حذف المحادثة',
+                                  text: l.deleteChat,
                                   color: p.danger,
                                 ),
                               ),
                             if (group != null)
                               PopupMenuItem(
                                 value: 'leave',
-                                child: _MenuRow(icon: Icons.logout_rounded, text: 'الخروج من الجروب', color: p.danger),
+                                child: _MenuRow(icon: Icons.logout_rounded, text: l.leaveGroup, color: p.danger),
                               ),
                           ],
                         ),
@@ -836,14 +834,14 @@ class _ChatPageState extends State<ChatPage> {
                     icon: Icons.cloud_off_rounded,
                     color: p.textMuted,
                     text: wifi
-                        ? '${c.title} مش على الشبكة دلوقتي. أول ما يفتح التطبيق على نفس الواي فاي هتقدر تكلمه.'
-                        : '${c.title} مش قريب دلوقتي. أول ما يقرب ويفتح التطبيق هتقدر تكلمه.',
+                        ? l.peerOfflineWifi(c.title)
+                        : l.peerOfflineBt(c.title),
                   ),
                 if (alive && group != null && !s.canSend)
                   _Notice(
                     icon: Icons.cloud_off_rounded,
                     color: p.textMuted,
-                    text: 'مفيش أي جهاز قريب دلوقتي — الرسايل بتتبعت لما يبقى فيه حد واصلين له.',
+                    text: l.noDeviceNearby,
                   ),
                 Expanded(
                   child: s.messages.isEmpty
@@ -875,12 +873,12 @@ class _ChatPageState extends State<ChatPage> {
                           onCancelTransfer: (m) async {
                             final ok = await confirmDialog(
                               context,
-                              title: m.kind == MessageKind.mine ? 'إلغاء الإرسال؟' : 'إلغاء الاستلام؟',
+                              title: m.kind == MessageKind.mine ? l.cancelSendingQ : l.cancelReceivingQ,
                               message: m.kind == MessageKind.mine
-                                  ? 'الملف هيتشال من المحادثة عندك وعند الطرف التاني.'
-                                  : 'الملف هيتشال من عندك ومش هيكمّل.',
-                              confirm: 'إلغاء النقل',
-                              cancel: 'رجوع',
+                                  ? l.cancelSendingBody
+                                  : l.cancelReceivingBody,
+                              confirm: l.cancelTransfer,
+                              cancel: l.back,
                               destructive: true,
                             );
                             if (ok) await s.cancelTransfer(m);
@@ -905,7 +903,7 @@ class _ChatPageState extends State<ChatPage> {
                               ),
                         ],
                   reply: _reply,
-                  replyTitle: _reply == null ? null : (_reply!.toMine ? 'انت' : (_reply!.author ?? c.title)),
+                  replyTitle: _reply == null ? null : (_reply!.toMine ? l.you : (_reply!.author ?? c.title)),
                   onCancelReply: () {
                     if (_reply != null) setState(() => _reply = null);
                   },
@@ -924,33 +922,33 @@ Future<void> toggleMute(BuildContext context, Conversation c) async {
   final hub = ChatHub.instance;
   if (c.muted) {
     await hub.setMuted(c);
-    if (context.mounted) showToast(context, 'الإشعارات رجعت للمحادثة دي');
+    if (context.mounted) showToast(context, context.l10n.notificationsBack);
     return;
   }
-  final choice = await showModalBottomSheet<int>(
-    context: context,
-    builder: (ctx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text('كتم الإشعارات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              ),
-            ),
-            for (final (hours, label) in const [(1, 'ساعة'), (8, '8 ساعات'), (24 * 7, 'أسبوع'), (0, 'دايماً')])
-              ListTile(
-                leading: const Icon(Icons.notifications_off_outlined),
-                title: Text(label),
-                onTap: () => Navigator.pop(ctx, hours),
-              ),
-          ],
+  final choice = await showActionSheet<int>(
+    context,
+    builder: (ctx) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(ctx.l10n.muteNotifications, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          ),
         ),
-      ),
+        for (final (hours, label) in [
+          (1, ctx.l10n.muteHour),
+          (8, ctx.l10n.mute8Hours),
+          (24 * 7, ctx.l10n.muteWeek),
+          (0, ctx.l10n.muteAlways),
+        ])
+          ListTile(
+            leading: const Icon(Icons.notifications_off_outlined),
+            title: Text(label),
+            onTap: () => Navigator.pop(ctx, hours),
+          ),
+      ],
     ),
   );
   if (choice == null) return;
@@ -960,7 +958,7 @@ Future<void> toggleMute(BuildContext context, Conversation c) async {
     forever: choice == 0,
   );
   if (context.mounted) {
-    showToast(context, c.isGroup ? 'اتكتم — المنشن بس هو اللي هيبعتلك إشعار' : 'إشعارات المحادثة دي اتكتمت');
+    showToast(context, c.isGroup ? context.l10n.mutedGroupToast : context.l10n.mutedToast);
   }
 }
 
@@ -1019,15 +1017,15 @@ class _SearchBar extends StatelessWidget {
         padding: EdgeInsetsDirectional.only(top: MediaQuery.paddingOf(context).top + 4, bottom: 8, start: 2, end: 6),
         child: Row(
           children: [
-            IconButton(tooltip: 'قفل البحث', icon: const BackButtonIcon(), onPressed: onClose),
+            IconButton(tooltip: context.l10n.closeSearch, icon: const BackButtonIcon(), onPressed: onClose),
             Expanded(
               child: TextField(
                 controller: controller,
                 autofocus: true,
                 textInputAction: TextInputAction.search,
                 onChanged: onChanged,
-                decoration: const InputDecoration(
-                  hintText: 'دوّر في المحادثة',
+                decoration: InputDecoration(
+                  hintText: context.l10n.searchInChat,
                   filled: false,
                   isDense: true,
                   border: InputBorder.none,
@@ -1038,17 +1036,17 @@ class _SearchBar extends StatelessWidget {
             ),
             if (controller.text.trim().isNotEmpty)
               Text(
-                count == 0 ? 'مفيش' : '${at + 1}/$count',
+                count == 0 ? context.l10n.none : '${at + 1}/$count',
                 style: TextStyle(color: p.textMuted, fontSize: 13, fontWeight: FontWeight.w600),
               ),
             IconButton(
-              tooltip: 'الأقدم',
+              tooltip: context.l10n.older,
               visualDensity: VisualDensity.compact,
               onPressed: at + 1 < count ? onOlder : null,
               icon: const Icon(Icons.keyboard_arrow_up_rounded),
             ),
             IconButton(
-              tooltip: 'الأحدث',
+              tooltip: context.l10n.newer,
               visualDensity: VisualDensity.compact,
               onPressed: at > 0 ? onNewer : null,
               icon: const Icon(Icons.keyboard_arrow_down_rounded),
@@ -1116,7 +1114,7 @@ class _Header extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: 'رجوع',
+              tooltip: context.l10n.back,
               icon: const BackButtonIcon(),
               onPressed: () => Navigator.of(context).maybePop(),
             ),
@@ -1246,13 +1244,13 @@ class _EmptyChat extends StatelessWidget {
             Icon(group ? Icons.forum_outlined : Icons.lock_outline_rounded, size: 44, color: p.textMuted),
             const SizedBox(height: 14),
             Text(
-              group ? 'ابدأ الكلام في الجروب' : 'قول أهلاً 👋',
+              group ? context.l10n.startGroupTalk : context.l10n.sayHello,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
             ),
             const SizedBox(height: 6),
             Text(
-              '${group ? 'رسايل الجروب مشفّرة بمفتاحه ومبتعدّيش على أي سيرفر.' : 'الرسايل مشفّرة من طرف لطرف تلقائياً — من غير كلمة سر ومن غير إنترنت.'}\n'
-              '${saved ? 'المحادثة دي بتتحفظ على موبايلك.' : 'المحادثة دي مش بتتحفظ: هتتمسح لما تقفل التطبيق.'}',
+              '${group ? context.l10n.emptyGroupEnc : context.l10n.emptyDirectEnc}\n'
+              '${saved ? context.l10n.emptySaved : context.l10n.emptyNotSaved}',
               textAlign: TextAlign.center,
               style: TextStyle(color: p.textMuted, height: 1.7, fontSize: 13.5),
             ),
