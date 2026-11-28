@@ -26,7 +26,16 @@ h2{font-size:28px;margin:0 0 18px;color:var(--saffron-ink);text-align:center}
 .feat p{margin:0;color:var(--muted);font-size:15px}
 .band{background:var(--card);border:1px dashed var(--line);border-radius:22px;padding:26px 20px;margin-top:40px;text-align:center}
 .band p{max-width:680px;margin:0 auto;font-size:17px}
-.band h3{margin:22px 0 6px;font-size:20px;color:var(--saffron-ink)}
+.sub{text-align:center;color:var(--muted);max-width:680px;margin:-8px auto 18px;font-size:17px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:820px;margin:0 auto}
+@media (max-width:600px){.chips{grid-template-columns:repeat(2,1fr)}.chip:last-child:nth-child(odd){grid-column:1/-1}}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column}
+.chip b{font-size:16px}
+.chip span{color:var(--muted);font-size:13px}
+.uses{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:900px){.uses{grid-template-columns:repeat(2,1fr)}}
+.use{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-weight:600}
+.use span{font-size:22px}
 .shots{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory}
 .shots img{flex:0 0 auto;width:210px;height:auto;border-radius:22px;border:1px solid var(--line);scroll-snap-align:center;background:var(--card)}
 .faq{max-width:760px;margin:0 auto}

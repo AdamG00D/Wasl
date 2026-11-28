@@ -30,6 +30,29 @@ KEYWORDS = [
     'chat without internet', 'messaging without internet', 'no internet chat', 'Bluetooth chat', 'Bluetooth messenger',
     'Wi-Fi chat', 'hotspot chat', 'mesh messenger', 'mesh chat', 'off-grid messaging', 'emergency chat app',
     'encrypted offline chat', 'Bridgefy alternative', 'FireChat alternative', 'Arabic offline chat',
+    # بيعمل إيه كمان من غير نت
+    'إرسال صور بدون إنترنت', 'إرسال ملفات بدون نت', 'نقل ملفات بدون انترنت', 'رسائل صوتية بدون إنترنت', 'فويس من غير نت',
+    'مكالمات بدون إنترنت', 'مكالمة فيديو بدون نت', 'جروبات بدون إنترنت', 'جروب شات بدون نت', 'رسالة استغاثة بدون إنترنت',
+    'send photos without internet', 'file transfer without internet', 'voice messages offline', 'calls without internet',
+    'offline group chat', 'SOS app without internet',
+    # ألعاب من غير نت
+    'ألعاب بدون إنترنت', 'ألعاب بدون انترنت', 'ألعاب بدون نت', 'العاب بدون نت', 'ألعاب أوفلاين', 'العاب اوفلاين',
+    'ألعاب جماعية بدون نت', 'ألعاب جماعية أوفلاين', 'ألعاب بالبلوتوث', 'العاب بلوتوث', 'ألعاب للاتنين بدون نت',
+    'ألعاب للرحلات', 'ألعاب للتجمعات', 'لعبة المافيا', 'لعبة المافيا بدون نت', 'لعبة مين الجاسوس', 'لعبة الجاسوس',
+    'لعبة إكس أو', 'اكس او بالبلوتوث', 'لعبة حرب السفن', 'لعبة الذاكرة', 'لعبة أربعة في صف', 'حجر ورقة مقص',
+    'لعبة المربعات والنقط', 'مسابقة أسئلة بدون نت', 'لعبة أسئلة جماعية',
+    'offline games', 'games without internet', 'offline multiplayer games', 'Bluetooth multiplayer games',
+    'local multiplayer games', 'party games offline', 'mafia game app', 'who is the spy game', 'spy word game',
+    'tic tac toe Bluetooth', 'battleship game offline', 'connect four offline', 'memory game multiplayer',
+    'rock paper scissors multiplayer', 'dots and boxes multiplayer', 'trivia quiz offline',
+    # تستخدمه فين
+    'شات في الرحلات', 'شات للتخييم', 'تواصل في الصحراء', 'شات في الصحرا', 'تواصل في الجبال', 'شات في الحفلات',
+    'تواصل في الملاعب', 'تواصل في الزحمة', 'تواصل في الحج والعمرة', 'شات في الطيارة', 'وضع الطيران شات',
+    'شات في المركب', 'تواصل في البحر', 'شات في المدرسة', 'شات في الجامعة', 'تواصل وقت انقطاع الكهرباء',
+    'تواصل وقت قطع الإنترنت', 'تواصل في الزلازل والكوارث', 'تواصل في الطوارئ', 'مكان مفيهوش شبكة', 'من غير شبكة موبايل',
+    'chat while camping', 'hiking chat app', 'festival chat app', 'concert messaging', 'stadium chat', 'Hajj communication app',
+    'chat on airplane mode', 'cruise ship chat', 'classroom chat', 'blackout communication', 'internet shutdown app',
+    'disaster communication app', 'earthquake emergency app', 'no signal messaging', 'no cell service chat',
 ]
 SHOTS = ['chats', 'group-chat', 'nearby', 'games', 'game-mafia', 'guide']
 
@@ -57,8 +80,19 @@ T = {
         ],
         'seekTitle': 'بتدوّر على شات من غير نت؟',
         'seek': 'لو بتدوّر على شات بدون إنترنت، أو دردشة أوفلاين، أو تطبيق رسايل بالبلوتوث أو الواي فاي يشتغل من غير نت ولا شبكة — جنبك معمول لكده بالظبط.',
-        'whenTitle': 'إمتى تحتاجه؟',
-        'when': 'لما الشبكة تقع أو تبقى زحمة: الحفلات والملاعب، الرحلات والصحرا، الجامعات، وانقطاع الكهربا والطوارئ.',
+        'useTitle': 'تستخدمه فين؟',
+        'uses': [
+            ('🏕️', 'الرحلات والتخييم'), ('🏜️', 'الصحرا والجبال'), ('🎉', 'الحفلات والمهرجانات'), ('🏟️', 'الملاعب والماتشات'),
+            ('🕋', 'الحج والعمرة والزحمة'), ('✈️', 'الطيارة (وضع الطيران)'), ('🚢', 'المراكب والبحر'), ('🎓', 'المدرسة والجامعة'),
+            ('🏢', 'الشغل والمؤتمرات'), ('🔌', 'انقطاع الكهربا والنت'), ('🚨', 'الزلازل والطوارئ'), ('📵', 'أي مكان مفيهوش شبكة'),
+        ],
+        'gamesTitle': 'ألعاب من غير نت',
+        'gamesSub': '9 ألعاب جماعية جوه الشات، بتتلعب بالبلوتوث أو الواي فاي مع اللي جنبك — من غير إنترنت.',
+        'games': [
+            ('إكس أو', '2'), ('أربعة في صف', '2'), ('حرب السفن', '2'), ('حجر ورقة مقص', '2'), ('المربعات والنقط', '2–4'),
+            ('الذاكرة', '2–6'), ('مين الجاسوس؟', '3–12'), ('المسابقة', '2–15'), ('المافيا', '5–15'),
+        ],
+        'players': 'لاعبين',
         'shotsTitle': 'شكله',
         'shareTitle': 'صاحبك مفيهوش جنبك؟',
         'share': 'من الإعدادات ← "شارك جنبك": موبايلك يفتح شبكة، وصاحبك يصوّر كودين ويحمّل التطبيق من موبايلك على طول — من غير نت.',
@@ -66,6 +100,9 @@ T = {
         'faq': [
             ('جنبك محتاج إنترنت؟', 'لأ. جنبك بيشتغل بالبلوتوث والواي فاي بين الموبايلات القريبة، من غير إنترنت ولا باقة ولا سيرفر.'),
             ('فيه تطبيق شات يشتغل بدون إنترنت؟', 'أيوه، جنبك: شات أوفلاين لأندرويد بيبعت الرسايل والصور والفويس بالبلوتوث أو الواي فاي أو الهوت سبوت، من غير نت خالص.'),
+            ('فيه ألعاب بتشتغل من غير نت؟', 'أيوه، جنبك فيه 9 ألعاب جماعية من غير إنترنت: إكس أو، أربعة في صف، حرب السفن، حجر ورقة مقص، المربعات والنقط، الذاكرة، مين الجاسوس؟، المسابقة، والمافيا — بالبلوتوث أو الواي فاي.'),
+            ('ينفع أبعت صور وفويس من غير نت؟', 'أيوه: صور وفيديو ورسايل صوتية وملفات، ومكالمات صوت وفيديو كمان على الواي فاي أو الهوت سبوت — كله من غير إنترنت.'),
+            ('ينفع أستخدمه في الطيارة أو الصحرا أو الحج؟', 'أيوه، في أي مكان مفيهوش شبكة. في الطيارة شغّل البلوتوث أو الواي فاي وانت على وضع الطيران (لو مسموح في الرحلة).'),
             ('ينفع أدردش بالبلوتوث بس؟', 'أيوه. اختار بلوتوث في أول شاشة والموبايلات القريبة هتلاقي بعض لوحدها، ولو فيه واي فاي أو هوت سبوت جنبك يستخدم الاتنين مع بعض.'),
             ('إزاي أكلم حد بعيد عني؟', 'الرسايل بتعدّي على موبايلات تانية فاتحة جنبك (لحد 6). وكمان لو هو مش موجود دلوقتي، رسالتك بتستنى وتوصله أول ما يظهر.'),
             ('الشات متشفّر؟', 'الشات الخاص متشفّر من طرف لطرف تلقائياً. التفاصيل والحدود المعروفة مكتوبة بصراحة في صفحة الأمان على GitHub.'),
@@ -98,8 +135,19 @@ T = {
         ],
         'seekTitle': 'Looking for chat without internet?',
         'seek': 'If you’re looking for an offline chat app, an offline messenger, or a Bluetooth or Wi-Fi chat that works with no internet and no cell signal — that’s exactly what Ganbak is for.',
-        'whenTitle': 'When do you need it?',
-        'when': 'When the network is down or overloaded: festivals, stadiums, trips and deserts, campuses, power cuts and emergencies.',
+        'useTitle': 'Where to use it',
+        'uses': [
+            ('🏕️', 'Trips and camping'), ('🏜️', 'Deserts and mountains'), ('🎉', 'Festivals and concerts'), ('🏟️', 'Stadiums and matches'),
+            ('🕋', 'Hajj, Umrah and crowds'), ('✈️', 'Flights (airplane mode)'), ('🚢', 'Boats and cruises'), ('🎓', 'Schools and campuses'),
+            ('🏢', 'Work and conferences'), ('🔌', 'Power and internet cuts'), ('🚨', 'Earthquakes and emergencies'), ('📵', 'Anywhere with no signal'),
+        ],
+        'gamesTitle': 'Games with no internet',
+        'gamesSub': '9 multiplayer games inside chats, played over Bluetooth or Wi-Fi with the people around you — no internet.',
+        'games': [
+            ('Tic-tac-toe', '2'), ('Four in a row', '2'), ('Battleships', '2'), ('Rock paper scissors', '2'), ('Dots and boxes', '2–4'),
+            ('Memory', '2–6'), ('Who’s the spy?', '3–12'), ('Quiz', '2–15'), ('Mafia', '5–15'),
+        ],
+        'players': 'players',
         'shotsTitle': 'What it looks like',
         'shareTitle': 'Your friend doesn’t have it?',
         'share': 'Settings → “Share Ganbak”: your phone opens a network, your friend scans two codes and downloads the app straight from your phone — no internet.',
@@ -107,6 +155,9 @@ T = {
         'faq': [
             ('Does Ganbak need the internet?', 'No. It works over Bluetooth and Wi-Fi between nearby phones, with no internet, no data plan and no server.'),
             ('Is there a chat app that works without internet?', 'Yes — Ganbak is an offline chat app for Android that sends messages, photos and voice notes over Bluetooth, Wi-Fi or a hotspot, with no internet at all.'),
+            ('Are there games that work without internet?', 'Yes — Ganbak has 9 offline multiplayer games: tic-tac-toe, four in a row, battleships, rock paper scissors, dots and boxes, memory, who’s the spy?, quiz and mafia — over Bluetooth or Wi-Fi.'),
+            ('Can I send photos and voice notes without internet?', 'Yes: photos, videos, voice notes and files, plus voice and video calls over Wi-Fi or a hotspot — all with no internet.'),
+            ('Can I use it on a plane, in the desert or at Hajj?', 'Yes, anywhere with no signal. On a plane, turn Bluetooth or Wi-Fi on in airplane mode (if the flight allows it).'),
             ('Can I chat over Bluetooth only?', 'Yes. Pick Bluetooth on the first screen and nearby phones find each other; with Wi-Fi or a hotspot around, Ganbak can use both at once.'),
             ('How do I reach someone far away?', 'Messages hop through other phones running Ganbak (up to 6). And if they’re not around right now, your message waits and reaches them when they show up.'),
             ('Is it encrypted?', 'Private chats are end-to-end encrypted automatically. Details and known limits are written plainly in the security page on GitHub.'),
@@ -148,6 +199,9 @@ def page(lang: str) -> str:
         f'<div class="feat"><div class="ic">{i}</div><h3>{e(h)}</h3><p>{e(p)}</p></div>' for i, h, p in t['feats'])
     shots = '\n'.join(
         f'<img src="{up}img/{lang}/{s}.png" alt="{e(t["shotAlt"][s])}" width="270" height="570" loading="lazy">' for s in SHOTS)
+    games = '\n'.join(
+        f'<div class="chip"><b>{e(n)}</b><span>{e(c)} {e(t["players"])}</span></div>' for n, c in t['games'])
+    uses = '\n'.join(f'<div class="use"><span>{i}</span>{e(x)}</div>' for i, x in t['uses'])
     faq = '\n'.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in t['faq'])
     dl_icon = ('<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.6'
                'l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4l3.3 3.3V4a1 1 0 0 1 1-1zM5 19h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z"/></svg>')
@@ -204,8 +258,13 @@ def page(lang: str) -> str:
 <section><h2>{e(t['featTitle'])}</h2><div class="grid">
 {feats}
 </div></section>
-<section class="band"><h2>{e(t['seekTitle'])}</h2><p>{e(t['seek'])}</p>
-<h3>{e(t['whenTitle'])}</h3><p>{e(t['when'])}</p></section>
+<section><h2>{e(t['gamesTitle'])}</h2><p class="sub">{e(t['gamesSub'])}</p><div class="chips">
+{games}
+</div></section>
+<section><h2>{e(t['useTitle'])}</h2><div class="uses">
+{uses}
+</div></section>
+<section class="band"><h2>{e(t['seekTitle'])}</h2><p>{e(t['seek'])}</p></section>
 <section><h2>{e(t['shotsTitle'])}</h2><div class="shots">
 {shots}
 </div></section>
@@ -249,7 +308,16 @@ h2{font-size:28px;margin:0 0 18px;color:var(--saffron-ink);text-align:center}
 .feat p{margin:0;color:var(--muted);font-size:15px}
 .band{background:var(--card);border:1px dashed var(--line);border-radius:22px;padding:26px 20px;margin-top:40px;text-align:center}
 .band p{max-width:680px;margin:0 auto;font-size:17px}
-.band h3{margin:22px 0 6px;font-size:20px;color:var(--saffron-ink)}
+.sub{text-align:center;color:var(--muted);max-width:680px;margin:-8px auto 18px;font-size:17px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:820px;margin:0 auto}
+@media (max-width:600px){.chips{grid-template-columns:repeat(2,1fr)}.chip:last-child:nth-child(odd){grid-column:1/-1}}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column}
+.chip b{font-size:16px}
+.chip span{color:var(--muted);font-size:13px}
+.uses{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:900px){.uses{grid-template-columns:repeat(2,1fr)}}
+.use{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-weight:600}
+.use span{font-size:22px}
 .shots{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory}
 .shots img{flex:0 0 auto;width:210px;height:auto;border-radius:22px;border:1px solid var(--line);scroll-snap-align:center;background:var(--card)}
 .faq{max-width:760px;margin:0 auto}

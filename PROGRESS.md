@@ -18,7 +18,8 @@ one commit per step (plain message, no AI attribution), **never build the APK wi
 - Website search (2026-11-28): Google found "ganbak offline chat" but not Arabic searches like «جنبك شات اوفلاين» /
   «بدون انترنت», because those words weren't on the page. `tool/site.py` now has a `KEYWORDS` list (Arabic with and
   without hamza, Egyptian and standard, English) that goes into `meta keywords` + JSON-LD, plus a visible
-  "بتدوّر على شات من غير نت؟" paragraph and two FAQ entries with the same phrasing. Add new phrasings there.
+  "بتدوّر على شات من غير نت؟" paragraph, a "ألعاب من غير نت" section (the 9 games), a "تستخدمه فين؟" section
+  (trips, desert, Hajj, flights, blackouts…) and FAQ entries with the same phrasing. Add new phrasings there.
 - Package `com.adam.ganbak`, Dart package `ganbak`, Kotlin sources in `android/app/src/main/kotlin/com/adam/ganbak/`,
   repo `AdamG00D/Ganbak`, site `https://adamg00d.github.io/Ganbak/`, APKs `Ganbak-<ver>-*.apk` + `Ganbak-android*.apk`.
 - **Kept on purpose** (so Ganbak still talks to Wasl 1.6): every protocol label (`wasl/...` HKDF / AAD strings), the
