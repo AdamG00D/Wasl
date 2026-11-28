@@ -13,7 +13,12 @@ one commit per step (plain message, no AI attribution), **never build the APK wi
 ## The app is now **Ganbak (جنبك)** — renamed from Wasl (2026-11-27, owner's decision)
 
 - Name chosen with the owner after checking GitHub, the web and the stores (Shabakni / Hawalik / Washwasha / … were
-  taken or had bad associations). Store title: «جنبك: شات بلا نت» / «Ganbak: Offline Chat».
+  taken or had bad associations). Store title: «جنبك: شات بدون إنترنت» / «Ganbak: Offline Chat» («بلا نت» was
+  dropped on 2026-11-28 — people didn't understand it).
+- Website search (2026-11-28): Google found "ganbak offline chat" but not Arabic searches like «جنبك شات اوفلاين» /
+  «بدون انترنت», because those words weren't on the page. `tool/site.py` now has a `KEYWORDS` list (Arabic with and
+  without hamza, Egyptian and standard, English) that goes into `meta keywords` + JSON-LD, plus a visible
+  "بتدوّر على شات من غير نت؟" paragraph and two FAQ entries with the same phrasing. Add new phrasings there.
 - Package `com.adam.ganbak`, Dart package `ganbak`, Kotlin sources in `android/app/src/main/kotlin/com/adam/ganbak/`,
   repo `AdamG00D/Ganbak`, site `https://adamg00d.github.io/Ganbak/`, APKs `Ganbak-<ver>-*.apk` + `Ganbak-android*.apk`.
 - **Kept on purpose** (so Ganbak still talks to Wasl 1.6): every protocol label (`wasl/...` HKDF / AAD strings), the

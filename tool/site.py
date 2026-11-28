@@ -6,6 +6,7 @@ python3 tool/site.py   ← بعد أي تغيير في الكلام أو الص�
 import html
 import json
 import shutil
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -16,13 +17,27 @@ REPO = 'https://github.com/AdamG00D/Ganbak'
 DOWNLOAD = REPO + '/releases/latest/download/Ganbak-android.apk'
 DOWNLOAD_ALL = REPO + '/releases/latest/download/Ganbak-android-universal.apk'
 RELEASES = REPO + '/releases/latest'
+# الصيغ اللي الناس بتكتبها في جوجل (بالهمزة ومن غيرها، عامية وفصحى، عربي وإنجليزي) — بتدخل في meta keywords و JSON-LD
+KEYWORDS = [
+    'جنبك', 'جنبك شات', 'تطبيق جنبك', 'جنبك اوفلاين', 'جنبك بدون انترنت',
+    'شات بدون إنترنت', 'شات بدون انترنت', 'شات بدون نت', 'شات من غير نت', 'شات من غير إنترنت', 'شات اوفلاين', 'شات أوفلاين',
+    'دردشة بدون إنترنت', 'دردشة بدون انترنت', 'دردشة اوفلاين', 'دردشة بدون نت', 'محادثة بدون إنترنت', 'محادثة بدون انترنت',
+    'برنامج شات بدون نت', 'برنامج دردشة بدون انترنت', 'تطبيق شات بدون انترنت', 'تطبيق مراسلة بدون إنترنت',
+    'رسائل بدون إنترنت', 'رسايل من غير نت', 'شات بالبلوتوث', 'دردشة بالبلوتوث', 'محادثة عن طريق البلوتوث',
+    'شات بالواي فاي', 'شات على الهوت سبوت', 'شات بدون شبكة', 'تواصل بدون إنترنت', 'التواصل وقت انقطاع الإنترنت',
+    'شات مشفر', 'تطبيق مراسلة مشفر', 'شات للطوارئ', 'بديل بريدجفاي',
+    'Ganbak', 'Ganbak chat', 'Ganbak offline chat', 'offline chat', 'offline chat app', 'offline messenger',
+    'chat without internet', 'messaging without internet', 'no internet chat', 'Bluetooth chat', 'Bluetooth messenger',
+    'Wi-Fi chat', 'hotspot chat', 'mesh messenger', 'mesh chat', 'off-grid messaging', 'emergency chat app',
+    'encrypted offline chat', 'Bridgefy alternative', 'FireChat alternative', 'Arabic offline chat',
+]
 SHOTS = ['chats', 'group-chat', 'nearby', 'games', 'game-mafia', 'guide']
 
 T = {
     'ar': {
         'dir': 'rtl', 'path': '', 'other': 'en/', 'otherName': 'English',
-        'title': 'جنبك: شات بلا نت — تطبيق تواصل مشفّر من غير إنترنت ولا سيرفر لأندرويد (Ganbak)',
-        'desc': 'جنبك تطبيق شات لأندرويد بيشتغل من غير إنترنت ولا سيرفر: الموبايلات القريبة بتكلم بعض بالبلوتوث والواي فاي وبتوصّل الرسايل لبعض كشبكة Mesh. شات خاص مشفّر، جروبات، ألعاب، وشبكة واي فاي من موبايلك. مجاني ومفتوح المصدر.',
+        'title': 'جنبك: شات بدون إنترنت — دردشة أوفلاين مشفّرة بالبلوتوث والواي فاي لأندرويد (Ganbak)',
+        'desc': 'جنبك (Ganbak) تطبيق شات ودردشة بدون إنترنت لأندرويد — شات أوفلاين من غير نت ولا سيرفر: الموبايلات القريبة بتكلم بعض بالبلوتوث والواي فاي وبتوصّل الرسايل لبعض كشبكة Mesh. محادثات خاصة مشفّرة، جروبات، ألعاب، وشبكة واي فاي من موبايلك. مجاني ومفتوح المصدر.',
         'hero': 'اتكلم مع اللي حواليك<br>من غير إنترنت',
         'heroSub': 'جنبك بيخلّي الموبايلات القريبة تكلم بعض بالبلوتوث والواي فاي، وتوصّل الرسايل لبعض كشبكة — من غير نت، ولا سيرفر، ولا حساب.',
         'download': 'حمّل جنبك لأندرويد', 'source': 'الكود على GitHub',
@@ -40,6 +55,8 @@ T = {
             ('🎮', 'ألعاب جوه الشات', 'إكس أو، حرب السفن، الذاكرة، مين الجاسوس؟، المسابقة، المافيا وغيرهم.'),
             ('👥', 'جروبات', 'عامة، أو بكلمة سر، أو بطلب انضمام، أو سرية بالدعوة بس — بصاحب ومشرفين.'),
         ],
+        'seekTitle': 'بتدوّر على شات من غير نت؟',
+        'seek': 'لو بتدوّر على شات بدون إنترنت، أو دردشة أوفلاين، أو تطبيق رسايل بالبلوتوث أو الواي فاي يشتغل من غير نت ولا شبكة — جنبك معمول لكده بالظبط.',
         'whenTitle': 'إمتى تحتاجه؟',
         'when': 'لما الشبكة تقع أو تبقى زحمة: الحفلات والملاعب، الرحلات والصحرا، الجامعات، وانقطاع الكهربا والطوارئ.',
         'shotsTitle': 'شكله',
@@ -48,6 +65,8 @@ T = {
         'faqTitle': 'أسئلة شائعة',
         'faq': [
             ('جنبك محتاج إنترنت؟', 'لأ. جنبك بيشتغل بالبلوتوث والواي فاي بين الموبايلات القريبة، من غير إنترنت ولا باقة ولا سيرفر.'),
+            ('فيه تطبيق شات يشتغل بدون إنترنت؟', 'أيوه، جنبك: شات أوفلاين لأندرويد بيبعت الرسايل والصور والفويس بالبلوتوث أو الواي فاي أو الهوت سبوت، من غير نت خالص.'),
+            ('ينفع أدردش بالبلوتوث بس؟', 'أيوه. اختار بلوتوث في أول شاشة والموبايلات القريبة هتلاقي بعض لوحدها، ولو فيه واي فاي أو هوت سبوت جنبك يستخدم الاتنين مع بعض.'),
             ('إزاي أكلم حد بعيد عني؟', 'الرسايل بتعدّي على موبايلات تانية فاتحة جنبك (لحد 6). وكمان لو هو مش موجود دلوقتي، رسالتك بتستنى وتوصله أول ما يظهر.'),
             ('الشات متشفّر؟', 'الشات الخاص متشفّر من طرف لطرف تلقائياً. التفاصيل والحدود المعروفة مكتوبة بصراحة في صفحة الأمان على GitHub.'),
             ('جنبك مجاني؟', 'أيوه، مجاني ومفتوح المصدر (GPL-3.0)، مفيهوش إعلانات ولا تحليلات.'),
@@ -58,8 +77,8 @@ T = {
     },
     'en': {
         'dir': 'ltr', 'path': 'en/', 'other': '../', 'otherName': 'العربية',
-        'title': 'Ganbak: Offline Chat — encrypted chat for Android with no internet and no server (جنبك)',
-        'desc': 'Ganbak is an offline chat app for Android: phones nearby talk over Bluetooth and Wi-Fi and relay messages as a mesh, with no internet and no server. End-to-end encrypted private chats, groups, games and your own Wi-Fi network. Free and open source.',
+        'title': 'Ganbak: Offline Chat — chat without internet over Bluetooth and Wi-Fi for Android (جنبك)',
+        'desc': 'Ganbak (جنبك) is an offline chat and messenger app for Android: chat without internet — phones nearby talk over Bluetooth and Wi-Fi and relay messages as a mesh, with no internet and no server. End-to-end encrypted private chats, groups, games and your own Wi-Fi network. Free and open source.',
         'hero': 'Talk to people around you<br>with no internet',
         'heroSub': 'Ganbak lets nearby phones talk over Bluetooth and Wi-Fi and relay messages for each other as a mesh — no internet, no server, no account.',
         'download': 'Get Ganbak for Android', 'source': 'Source on GitHub',
@@ -77,6 +96,8 @@ T = {
             ('🎮', 'Games in chats', 'Tic-tac-toe, battleships, memory, who’s the spy?, quiz, mafia and more.'),
             ('👥', 'Groups', 'Open, password, join-request or invite-only secret groups, with an owner and admins.'),
         ],
+        'seekTitle': 'Looking for chat without internet?',
+        'seek': 'If you’re looking for an offline chat app, an offline messenger, or a Bluetooth or Wi-Fi chat that works with no internet and no cell signal — that’s exactly what Ganbak is for.',
         'whenTitle': 'When do you need it?',
         'when': 'When the network is down or overloaded: festivals, stadiums, trips and deserts, campuses, power cuts and emergencies.',
         'shotsTitle': 'What it looks like',
@@ -85,6 +106,8 @@ T = {
         'faqTitle': 'FAQ',
         'faq': [
             ('Does Ganbak need the internet?', 'No. It works over Bluetooth and Wi-Fi between nearby phones, with no internet, no data plan and no server.'),
+            ('Is there a chat app that works without internet?', 'Yes — Ganbak is an offline chat app for Android that sends messages, photos and voice notes over Bluetooth, Wi-Fi or a hotspot, with no internet at all.'),
+            ('Can I chat over Bluetooth only?', 'Yes. Pick Bluetooth on the first screen and nearby phones find each other; with Wi-Fi or a hotspot around, Ganbak can use both at once.'),
             ('How do I reach someone far away?', 'Messages hop through other phones running Ganbak (up to 6). And if they’re not around right now, your message waits and reaches them when they show up.'),
             ('Is it encrypted?', 'Private chats are end-to-end encrypted automatically. Details and known limits are written plainly in the security page on GitHub.'),
             ('Is Ganbak free?', 'Yes — free and open source (GPL-3.0), with no ads and no analytics.'),
@@ -110,7 +133,8 @@ def page(lang: str) -> str:
     url = BASE + t['path']
     ld = {
         '@context': 'https://schema.org', '@type': 'SoftwareApplication',
-        'name': 'Ganbak', 'alternateName': 'جنبك', 'operatingSystem': 'Android 7.0+',
+        'name': 'Ganbak', 'alternateName': ['جنبك', 'جنبك شات', 'Ganbak Offline Chat', 'جنبك: شات بدون إنترنت'],
+        'keywords': ', '.join(KEYWORDS), 'operatingSystem': 'Android 7.0+',
         'applicationCategory': 'CommunicationApplication', 'description': t['desc'],
         'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'USD'},
         'downloadUrl': DOWNLOAD, 'installUrl': DOWNLOAD, 'license': 'https://www.gnu.org/licenses/gpl-3.0.html',
@@ -134,6 +158,8 @@ def page(lang: str) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(t['title'])}</title>
 <meta name="description" content="{e(t['desc'])}">
+<meta name="keywords" content="{e(', '.join(KEYWORDS))}">
+<meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="{url}">
 <link rel="alternate" hreflang="ar" href="{BASE}">
 <link rel="alternate" hreflang="en" href="{BASE}en/">
@@ -144,7 +170,12 @@ def page(lang: str) -> str:
 <meta property="og:url" content="{url}">
 <meta property="og:image" content="{BASE}img/banner.{lang}.png">
 <meta property="og:locale" content="{'ar_EG' if lang == 'ar' else 'en_US'}">
+<meta property="og:site_name" content="{'جنبك' if lang == 'ar' else 'Ganbak'}">
+<meta property="og:image:alt" content="{e(t['title'])}">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{e(t['title'])}">
+<meta name="twitter:description" content="{e(t['desc'])}">
+<meta name="twitter:image" content="{BASE}img/banner.{lang}.png">
 <meta name="theme-color" content="#1B1F3B">
 <link rel="icon" href="{up}img/icon.png" type="image/png">
 <link rel="apple-touch-icon" href="{up}img/icon.png">
@@ -173,7 +204,8 @@ def page(lang: str) -> str:
 <section><h2>{e(t['featTitle'])}</h2><div class="grid">
 {feats}
 </div></section>
-<section class="band"><h2>{e(t['whenTitle'])}</h2><p>{e(t['when'])}</p></section>
+<section class="band"><h2>{e(t['seekTitle'])}</h2><p>{e(t['seek'])}</p>
+<h3>{e(t['whenTitle'])}</h3><p>{e(t['when'])}</p></section>
 <section><h2>{e(t['shotsTitle'])}</h2><div class="shots">
 {shots}
 </div></section>
@@ -217,6 +249,7 @@ h2{font-size:28px;margin:0 0 18px;color:var(--saffron-ink);text-align:center}
 .feat p{margin:0;color:var(--muted);font-size:15px}
 .band{background:var(--card);border:1px dashed var(--line);border-radius:22px;padding:26px 20px;margin-top:40px;text-align:center}
 .band p{max-width:680px;margin:0 auto;font-size:17px}
+.band h3{margin:22px 0 6px;font-size:20px;color:var(--saffron-ink)}
 .shots{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory}
 .shots img{flex:0 0 auto;width:210px;height:auto;border-radius:22px;border:1px solid var(--line);scroll-snap-align:center;background:var(--card)}
 .faq{max-width:760px;margin:0 auto}
@@ -254,7 +287,7 @@ def main() -> None:
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
         + ''.join(
-            f'  <url><loc>{BASE}{p}</loc>'
+            f'  <url><loc>{BASE}{p}</loc><lastmod>{date.today().isoformat()}</lastmod>'
             f'<xhtml:link rel="alternate" hreflang="ar" href="{BASE}"/>'
             f'<xhtml:link rel="alternate" hreflang="en" href="{BASE}en/"/></url>\n' for p in ('', 'en/'))
         + '</urlset>\n')

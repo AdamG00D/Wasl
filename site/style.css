@@ -26,6 +26,7 @@ h2{font-size:28px;margin:0 0 18px;color:var(--saffron-ink);text-align:center}
 .feat p{margin:0;color:var(--muted);font-size:15px}
 .band{background:var(--card);border:1px dashed var(--line);border-radius:22px;padding:26px 20px;margin-top:40px;text-align:center}
 .band p{max-width:680px;margin:0 auto;font-size:17px}
+.band h3{margin:22px 0 6px;font-size:20px;color:var(--saffron-ink)}
 .shots{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory}
 .shots img{flex:0 0 auto;width:210px;height:auto;border-radius:22px;border:1px solid var(--line);scroll-snap-align:center;background:var(--card)}
 .faq{max-width:760px;margin:0 auto}
